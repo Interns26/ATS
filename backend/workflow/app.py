@@ -25,7 +25,8 @@ def process_resume(path):
     return result
 
 
-resume_folder = Path("resumes")
+BASE_DIR = Path(__file__).resolve().parent
+resume_folder = BASE_DIR.parent.parent / "storage" / "resumes"
 
 files = list(resume_folder.glob("*.pdf"))
 files += list(resume_folder.glob("*.docx"))
