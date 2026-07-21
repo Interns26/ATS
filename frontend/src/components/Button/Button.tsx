@@ -1,29 +1,15 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary";
-};
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
 
 function Button({
-  variant = "primary",
   className = "",
   children,
   ...props
 }: ButtonProps) {
-  const base =
-    "rounded-lg px-5 py-2 font-medium transition-colors duration-200";
-
-  const styles = {
-    primary:
-      "bg-blue-600 text-white hover:bg-blue-700",
-
-    secondary:
-      "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
-  };
-
   return (
     <button
-      className={`${base} ${styles[variant]} ${className}`}
+      className={`rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
