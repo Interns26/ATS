@@ -1,18 +1,17 @@
-RESUME_PROMPT = """
+from models import ResumeInfo
+from models import ATSResult
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import PromptTemplate
+
+resume_parser = PydanticOutputParser(pydantic_object=ResumeInfo)
+ats_parser = PydanticOutputParser(pydantic_object=ATSResult)
+RESUME_PROMPT = PromptTemplate(
+    template="""
 You are an expert resume parser.
 
-Extract the following information from the resume.
+Extract the requested information from the resume.
 
-Fields:
-
-- id (if available, otherwise null)
-- name
-- cgpa
-- university
-- projects
-- skills
-- experience
-- certifications
+{resume_format_instructions}
 
 Rules:
 
@@ -26,9 +25,14 @@ Resume:
 
 {resume}
 """
+,
+input_variables=["resume"],
+partial_variables={"resume_format_instructions": resume_parser.get_format_instructions()}
+)
 
 
-ATS_PROMPT = """
+ATS_PROMPT = PromptTemplate(
+    template="""
 You are an experienced ATS (Applicant Tracking System).
 
 You will receive:
@@ -38,16 +42,8 @@ You will receive:
 
 Your task is to evaluate how well the resume matches the job description.
 
-Return the following:
-
-- ats_score (0-100)
-- recommendation
-- matched_skills
-- missing_skills
-- strengths
-- recommendations
-- matched_sections
-- missing_requirements
+Format:
+   {ats_format_instructions}
 
 Guidelines:
 
@@ -67,3 +63,7 @@ Job Description:
 
 {jd}
 """
+,
+input_variables=["resume", "jd"],
+partial_variables={"ats_format_instructions": ats_parser.get_format_instructions()}
+)

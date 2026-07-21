@@ -11,9 +11,13 @@ from prompts import ATS_PROMPT
 
 from models import ResumeInfo
 from models import ATSResult
+from langchain_core.output_parsers import PydanticOutputParser
+
+resume_parser = PydanticOutputParser(pydantic_object=ResumeInfo)
+ats_parser = PydanticOutputParser(pydantic_object=ATSResult)
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     temperature=0
 )
 
@@ -31,39 +35,57 @@ def extract_text_node(state):
 
 def parse_resume_node(state):
 
-    structured_llm = llm.with_structured_output(
-        ResumeInfo
+ #Code with bugs
+    # structured_llm = llm.with_structured_output(
+    #     ResumeInfo
+    # )
+
+    # result = structured_llm.invoke(
+
+    #     RESUME_PROMPT.format(
+    #         resume=state["resume_text"],
+    #         resume_format_instructions=resume_parser.get_format_instructions()
+    #     )
+    # )
+    prompt_text = RESUME_PROMPT.format(
+        resume=state["resume_text"]
     )
 
-    result = structured_llm.invoke(
+    response = llm.invoke(prompt_text)
 
-        RESUME_PROMPT.format(
-            resume=state["resume_text"]
-        )
-    )
-
+    result = resume_parser.parse(response.content)
     return {
         "parsed_resume": result
     }
 
 
+
+
 def ats_node(state):
 
-    structured_llm = llm.with_structured_output(
-        ATSResult
+ #Code with bugs
+    # structured_llm = llm.with_structured_output(
+    #     ATSResult
+    # )
+
+    # result = structured_llm.invoke(
+
+    #     ATS_PROMPT.format(
+
+    #         resume=state["parsed_resume"],
+
+    #         jd=state["job_description"]
+
+    #         ats_format_instructions=ats_parser.get_format_instructions()
+
+    #     )
+    # )
+    prompt_text = ATS_PROMPT.format(
+        resume=state["parsed_resume"],
+        jd=state["job_description"]
     )
-
-    result = structured_llm.invoke(
-
-        ATS_PROMPT.format(
-
-            resume=state["parsed_resume"],
-
-            jd=state["job_description"]
-
-        )
-    )
-
+    response = llm.invoke(prompt_text)
+    result = ats_parser.parse(response.content)
     return {
         "ats_result": result
     }
