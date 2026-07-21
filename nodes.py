@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 
 from parser import extract_resume_text
 
@@ -16,8 +17,13 @@ from langchain_core.output_parsers import PydanticOutputParser
 resume_parser = PydanticOutputParser(pydantic_object=ResumeInfo)
 ats_parser = PydanticOutputParser(pydantic_object=ATSResult)
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite",
+# llm = ChatGoogleGenerativeAI(
+#     model="gemini-2.5-flash-lite",
+#     temperature=0
+# )
+
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",
     temperature=0
 )
 
