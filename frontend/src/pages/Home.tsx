@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
@@ -7,9 +8,9 @@ import TextArea from "../components/TextArea/TextArea";
 
 function Home() {
   const [resumeSummary] = useState({
-    total: 0,
-    complete: 0,
-    incomplete: 0,
+    total: 20,
+    complete: 17,
+    incomplete: 3,
   });
 
   const [jobDescription, setJobDescription] = useState("");
@@ -33,34 +34,35 @@ function Home() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-slate-800">
+        <h1 className="text-3xl font-bold">
           ATS Resume Analyzer
         </h1>
 
-        <p className="mt-2 text-slate-600">
-          Upload resumes, analyze ATS scores, and rank candidates.
+        <p className="mt-2 text-slate-600 dark:text-slate-300">
+          Upload resumes, analyze ATS scores and rank candidates against a job
+          description.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Resume Source">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-medium">
+              <label className="mb-2 block font-medium">
                 MinIO Bucket Name
               </label>
 
               <Input placeholder="e.g. resumes-2026" />
             </div>
 
-            <Button>Connect</Button>
+            <Button>Connect to MinIO</Button>
 
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-3">
               <span className="h-3 w-3 rounded-full bg-red-500"></span>
 
-              <span className="text-slate-600">
+              <span className="text-slate-600 dark:text-slate-300">
                 Not Connected
               </span>
             </div>
@@ -71,6 +73,7 @@ function Home() {
           <div className="space-y-4">
             <div className="flex justify-between">
               <span>Total Resumes</span>
+
               <span className="font-semibold">
                 {resumeSummary.total}
               </span>
@@ -78,6 +81,7 @@ function Home() {
 
             <div className="flex justify-between">
               <span>Complete</span>
+
               <span className="font-semibold text-green-600">
                 {resumeSummary.complete}
               </span>
@@ -85,6 +89,7 @@ function Home() {
 
             <div className="flex justify-between">
               <span>Incomplete</span>
+
               <span className="font-semibold text-red-600">
                 {resumeSummary.incomplete}
               </span>
@@ -95,18 +100,18 @@ function Home() {
 
       <Card title="Missing Candidate Information">
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
+          <table className="min-w-full text-slate-900 dark:text-slate-100">
             <thead>
-              <tr className="border-b bg-slate-100">
-                <th className="px-4 py-3 text-left text-sm font-semibold">
+              <tr className="border-b border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
+                <th className="px-4 py-3 text-left">
                   Candidate
                 </th>
 
-                <th className="px-4 py-3 text-left text-sm font-semibold">
+                <th className="px-4 py-3 text-left">
                   Missing Information
                 </th>
 
-                <th className="px-4 py-3 text-center text-sm font-semibold">
+                <th className="px-4 py-3 text-center">
                   Action
                 </th>
               </tr>
@@ -116,7 +121,7 @@ function Home() {
               {missingCandidates.map((candidate) => (
                 <tr
                   key={candidate.id}
-                  className="border-b hover:bg-slate-50"
+                  className="border-b border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
                   <td className="px-4 py-3">
                     {candidate.name}
@@ -139,7 +144,7 @@ function Home() {
       <Card title="Job Description">
         <div className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-2 block font-medium">
               Upload Job Description
             </label>
 
@@ -150,7 +155,7 @@ function Home() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-2 block font-medium">
               Extracted Job Description
             </label>
 
@@ -158,21 +163,23 @@ function Home() {
               rows={12}
               placeholder="Upload a PDF or paste the job description here..."
               value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
+              onChange={(e) =>
+                setJobDescription(e.target.value)
+              }
             />
           </div>
 
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-            Uploading a PDF will automatically populate this text box. Review
-            and edit the extracted text before analysis.
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+            After uploading a PDF, the extracted text will appear above.
+            Review it and make corrections before running the ATS analysis.
           </div>
         </div>
       </Card>
 
       <Card title="Recommendation Thresholds">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-2 block font-medium">
               Interview Threshold
             </label>
 
@@ -183,7 +190,7 @@ function Home() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-2 block font-medium">
               Consider Threshold
             </label>
 
@@ -196,9 +203,11 @@ function Home() {
       </Card>
 
       <div className="flex justify-end">
-        <Button disabled>
-          Analyze Candidates
-        </Button>
+        <Link to="/results">
+          <Button>
+            Analyze Candidates
+          </Button>
+        </Link>
       </div>
     </div>
   );
