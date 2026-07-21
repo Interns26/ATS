@@ -1,19 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
+import Select from "../components/Select/Select";
 import Input from "../components/Input/Input";
 import TextArea from "../components/TextArea/TextArea";
 
+import { getBuckets, getResumes } from "../services/api";
+
+type Resume = {
+  filename: string;
+  size: number;
+  last_modified: string;
+};
+
 function Home() {
-  const [resumeSummary] = useState({
-    total: 20,
-    complete: 17,
-    incomplete: 3,
-  });
+  const [buckets, setBuckets] = useState<string[]>([]);
+  const [selectedBucket, setSelectedBucket] = useState("");
+  const [connected, setConnected] = useState(false);
+
+  const [resumes, setResumes] = useState<Resume[]>([]);
 
   const [jobDescription, setJobDescription] = useState("");
+
+  const [resumeSummary, setResumeSummary] = useState({
+    total: 0,
+    complete: 0,
+    incomplete: 0,
+  });
 
   const [missingCandidates] = useState([
     {
@@ -33,6 +48,45 @@ function Home() {
     },
   ]);
 
+  async function connectToMinio() {
+    try {
+      const data = await getBuckets();
+
+      setBuckets(data.map((bucket: any) => bucket.name));
+
+      setConnected(true);
+    } catch (error) {
+      console.error(error);
+
+      alert("Unable to connect to MinIO.");
+    }
+  }
+
+  async function loadResumes() {
+    if (!selectedBucket) {
+      alert("Please select a bucket.");
+      return;
+    }
+
+    try {
+      const files = await getResumes(selectedBucket);
+
+      setResumes(files);
+
+      setResumeSummary({
+        total: files.length,
+        complete: files.length,
+        incomplete: 0,
+      });
+    } catch (error) {
+      console.error(error);
+
+      alert("Unable to load resumes.");
+    }
+  }
+
+  useEffect(() => {}, []);
+
   return (
     <div className="space-y-8">
       <div>
@@ -41,8 +95,8 @@ function Home() {
         </h1>
 
         <p className="mt-2 text-slate-600 dark:text-slate-300">
-          Upload resumes, analyze ATS scores and rank candidates against a job
-          description.
+          Select a resume bucket, load resumes, then upload a job description
+          for analysis.
         </p>
       </div>
 
@@ -51,19 +105,39 @@ function Home() {
           <div className="space-y-5">
             <div>
               <label className="mb-2 block font-medium">
-                MinIO Bucket Name
+                Resume Bucket
               </label>
 
-              <Input placeholder="e.g. resumes-2026" />
+              <Select
+                value={selectedBucket}
+                onChange={setSelectedBucket}
+                options={buckets}
+              />
             </div>
 
-            <Button>Connect to MinIO</Button>
+            <div className="flex gap-3">
+              <Button onClick={connectToMinio}>
+                Connect
+              </Button>
+
+              <Button onClick={loadResumes}>
+                Load Resumes
+              </Button>
+            </div>
 
             <div className="flex items-center gap-3">
-              <span className="h-3 w-3 rounded-full bg-red-500"></span>
+              <span
+                className={`h-3 w-3 rounded-full ${
+                  connected
+                    ? "bg-green-500"
+                    : "bg-red-500"
+                }`}
+              ></span>
 
               <span className="text-slate-600 dark:text-slate-300">
-                Not Connected
+                {connected
+                  ? "Connected"
+                  : "Not Connected"}
               </span>
             </div>
           </div>
@@ -98,20 +172,71 @@ function Home() {
         </Card>
       </div>
 
+      <Card title="Available Resumes">
+        {resumes.length === 0 ? (
+          <p className="text-slate-500">
+            No resumes loaded.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b bg-slate-100 dark:bg-slate-700">
+                  <th className="p-3 text-left">
+                    Filename
+                  </th>
+
+                  <th className="p-3 text-left">
+                    Size
+                  </th>
+
+                  <th className="p-3 text-left">
+                    Last Modified
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {resumes.map((resume) => (
+                  <tr
+                    key={resume.filename}
+                    className="border-b hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <td className="p-3">
+                      {resume.filename}
+                    </td>
+
+                    <td className="p-3">
+                      {(resume.size / 1024).toFixed(2)} KB
+                    </td>
+
+                    <td className="p-3">
+                      {new Date(
+                        resume.last_modified
+                      ).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       <Card title="Missing Candidate Information">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-slate-900 dark:text-slate-100">
+          <table className="min-w-full">
             <thead>
-              <tr className="border-b border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
-                <th className="px-4 py-3 text-left">
+              <tr className="border-b bg-slate-100 dark:bg-slate-700">
+                <th className="p-3 text-left">
                   Candidate
                 </th>
 
-                <th className="px-4 py-3 text-left">
+                <th className="p-3 text-left">
                   Missing Information
                 </th>
 
-                <th className="px-4 py-3 text-center">
+                <th className="p-3 text-center">
                   Action
                 </th>
               </tr>
@@ -121,17 +246,17 @@ function Home() {
               {missingCandidates.map((candidate) => (
                 <tr
                   key={candidate.id}
-                  className="border-b border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                  className="border-b hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  <td className="px-4 py-3">
+                  <td className="p-3">
                     {candidate.name}
                   </td>
 
-                  <td className="px-4 py-3 text-red-600">
+                  <td className="p-3 text-red-600">
                     {candidate.missing}
                   </td>
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="p-3 text-center">
                     <Button>Edit</Button>
                   </td>
                 </tr>
@@ -154,25 +279,14 @@ function Home() {
             />
           </div>
 
-          <div>
-            <label className="mb-2 block font-medium">
-              Extracted Job Description
-            </label>
-
-            <TextArea
-              rows={12}
-              placeholder="Upload a PDF or paste the job description here..."
-              value={jobDescription}
-              onChange={(e) =>
-                setJobDescription(e.target.value)
-              }
-            />
-          </div>
-
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
-            After uploading a PDF, the extracted text will appear above.
-            Review it and make corrections before running the ATS analysis.
-          </div>
+          <TextArea
+            rows={12}
+            value={jobDescription}
+            placeholder="Upload a PDF or paste the job description..."
+            onChange={(e) =>
+              setJobDescription(e.target.value)
+            }
+          />
         </div>
       </Card>
 
