@@ -6,6 +6,7 @@ from app.routers import storage
 from app.routers import buckets
 from app.routers import resumes
 from app.routers import analyze
+from app.routers import documents
 
 app = FastAPI(
     title="ATS - MinIO Storage Service"
@@ -27,6 +28,7 @@ app.include_router(storage.router)
 app.include_router(buckets.router)
 app.include_router(resumes.router)
 app.include_router(analyze.router)
+app.include_router(documents.router)
 
 
 @app.get("/health")

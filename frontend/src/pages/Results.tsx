@@ -19,6 +19,19 @@ function candidateName(candidate: CandidateResult) {
   return candidate.resume.name || candidate.filename;
 }
 
+function missingFields(candidate: CandidateResult): string[] {
+  const { resume } = candidate;
+  const missing: string[] = [];
+
+  if (!resume.name) missing.push("Name");
+  if (!resume.cgpa) missing.push("CGPA");
+  if (!resume.university) missing.push("University");
+  if (resume.skills.length === 0) missing.push("Skills");
+  if (resume.experience.length === 0) missing.push("Experience");
+
+  return missing;
+}
+
 function loadAnalysis(state: unknown): AnalyzeResponse | null {
   if (state && typeof state === "object" && "analysis" in state) {
     return (state as { analysis: AnalyzeResponse }).analysis;
@@ -76,6 +89,13 @@ function Results() {
       state: { candidate, bucket },
     });
   }
+
+  const candidatesWithMissingInfo = candidates
+    .map((candidate) => ({
+      candidate,
+      missing: missingFields(candidate),
+    }))
+    .filter((entry) => entry.missing.length > 0);
 
   return (
     <div className="space-y-6">
@@ -177,6 +197,43 @@ function Results() {
           </table>
         </div>
       </Card>
+
+      {candidatesWithMissingInfo.length > 0 && (
+        <Card title="Missing Candidate Information">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-slate-900 dark:text-slate-100">
+              <thead>
+                <tr className="border-b border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
+                  <th className="p-3 text-left">Candidate</th>
+                  <th className="p-3 text-left">Missing Information</th>
+                  <th className="p-3 text-center">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {candidatesWithMissingInfo.map(({ candidate, missing }) => (
+                  <tr
+                    key={candidate.filename}
+                    className="border-b border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                  >
+                    <td className="p-3">{candidateName(candidate)}</td>
+
+                    <td className="p-3 text-red-600">
+                      {missing.join(", ")}
+                    </td>
+
+                    <td className="p-3 text-center">
+                      <Button onClick={() => viewCandidate(candidate)}>
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

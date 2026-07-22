@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../components/Button/Button";
@@ -7,7 +8,12 @@ import Select from "../components/Select/Select";
 import Input from "../components/Input/Input";
 import TextArea from "../components/TextArea/TextArea";
 
-import { getBuckets, getResumes, analyzeCandidates } from "../services/api";
+import {
+  getBuckets,
+  getResumes,
+  analyzeCandidates,
+  extractTextFromFile,
+} from "../services/api";
 import type { AnalyzeResponse } from "../services/api";
 
 export const ANALYSIS_STORAGE_KEY = "ats:last-analysis";
@@ -26,6 +32,8 @@ function Home() {
   const [connected, setConnected] = useState(false);
 
   const [analyzing, setAnalyzing] = useState(false);
+  const [extractingJD, setExtractingJD] = useState(false);
+  const [jdFileName, setJdFileName] = useState<string | null>(null);
 
   const [resumes, setResumes] = useState<Resume[]>([]);
 
@@ -36,24 +44,6 @@ function Home() {
     complete: 0,
     incomplete: 0,
   });
-
-  const [missingCandidates] = useState([
-    {
-      id: 1,
-      name: "Ahmed Khan",
-      missing: "Phone Number",
-    },
-    {
-      id: 2,
-      name: "Sarah Ali",
-      missing: "Graduation Year",
-    },
-    {
-      id: 3,
-      name: "John Smith",
-      missing: "Skills",
-    },
-  ]);
 
   async function connectToMinio() {
     try {
@@ -93,6 +83,33 @@ function Home() {
   }
 
   useEffect(() => {}, []);
+
+  async function handleJobDescriptionFile(
+    e: ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setExtractingJD(true);
+    setJdFileName(file.name);
+
+    try {
+      const text = await extractTextFromFile(file);
+      setJobDescription(text);
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to extract text from that file."
+      );
+      setJdFileName(null);
+    } finally {
+      setExtractingJD(false);
+      // allow re-selecting the same file again later
+      e.target.value = "";
+    }
+  }
 
   async function handleAnalyze() {
     if (!selectedBucket) {
@@ -268,49 +285,6 @@ function Home() {
         )}
       </Card>
 
-      <Card title="Missing Candidate Information">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="border-b bg-slate-100 dark:bg-slate-700">
-                <th className="p-3 text-left">
-                  Candidate
-                </th>
-
-                <th className="p-3 text-left">
-                  Missing Information
-                </th>
-
-                <th className="p-3 text-center">
-                  Action
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {missingCandidates.map((candidate) => (
-                <tr
-                  key={candidate.id}
-                  className="border-b hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <td className="p-3">
-                    {candidate.name}
-                  </td>
-
-                  <td className="p-3 text-red-600">
-                    {candidate.missing}
-                  </td>
-
-                  <td className="p-3 text-center">
-                    <Button>Edit</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
       <Card title="Job Description">
         <div className="space-y-5">
           <div>
@@ -321,7 +295,21 @@ function Home() {
             <Input
               type="file"
               accept=".pdf,.txt"
+              onChange={handleJobDescriptionFile}
+              disabled={extractingJD}
             />
+
+            {extractingJD && (
+              <p className="mt-2 text-sm text-slate-500">
+                Extracting text from {jdFileName}…
+              </p>
+            )}
+
+            {!extractingJD && jdFileName && (
+              <p className="mt-2 text-sm text-green-600">
+                Loaded text from {jdFileName} — feel free to edit it below.
+              </p>
+            )}
           </div>
 
           <TextArea

@@ -10,6 +10,7 @@ app ever imported it, so the frontend had no real endpoint to call for
 analysis and Results.tsx / CandidateDetails.tsx were stubbed with mock data.
 """
 import tempfile
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List
@@ -52,9 +53,16 @@ def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description:
     content = download_file(bucket_name, object_key)
 
     suffix = Path(object_key).suffix.lower()
-    with tempfile.NamedTemporaryFile(suffix=suffix) as tmp:
+
+    # delete=False + explicit close before graph.invoke(): on Windows, a
+    # NamedTemporaryFile keeps an exclusive lock on the path while its
+    # handle is open, so pypdf/python-docx opening the same path again
+    # inside the pipeline fails with "PermissionError: [Errno 13]". We
+    # close it ourselves first, then clean up manually in `finally`.
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    try:
         tmp.write(content)
-        tmp.flush()
+        tmp.close()
 
         state = {
             "resume_path": tmp.name,
@@ -62,6 +70,11 @@ def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description:
         }
 
         result = graph.invoke(state)
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
 
     return CandidateResult(
         filename=object_key,

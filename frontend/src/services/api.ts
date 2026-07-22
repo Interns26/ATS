@@ -66,6 +66,26 @@ export async function getResumes(bucketName: string) {
   return response.json();
 }
 
+export async function extractTextFromFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_URL}/documents/extract-text`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(
+      detail?.detail ?? "Failed to extract text from file."
+    );
+  }
+
+  const data = await response.json();
+  return data.text as string;
+}
+
 export async function analyzeCandidates(
   bucketName: string,
   jobDescription: string
