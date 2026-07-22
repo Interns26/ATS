@@ -5,7 +5,7 @@ import Card from "../components/Card/Card";
 import CircularProgress from "../components/CircularProgress/CircularProgress";
 
 import type { AnalyzeResponse, CandidateResult } from "../services/api";
-import { ANALYSIS_STORAGE_KEY } from "./Home";
+import { ANALYSIS_STORAGE_KEY } from "../lib/analysisStorage";
 
 function loadAnalysisBucket(): string | null {
   const cached = sessionStorage.getItem(ANALYSIS_STORAGE_KEY);

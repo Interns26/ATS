@@ -15,8 +15,12 @@ import {
   extractTextFromFile,
 } from "../services/api";
 import type { AnalyzeResponse } from "../services/api";
-
-export const ANALYSIS_STORAGE_KEY = "ats:last-analysis";
+import {
+  ANALYSIS_STORAGE_KEY,
+  THRESHOLDS_STORAGE_KEY,
+  DEFAULT_THRESHOLDS,
+} from "../lib/analysisStorage";
+import type { Thresholds } from "../lib/analysisStorage";
 
 type Resume = {
   filename: string;
@@ -38,6 +42,13 @@ function Home() {
   const [resumes, setResumes] = useState<Resume[]>([]);
 
   const [jobDescription, setJobDescription] = useState("");
+
+  const [interviewThreshold, setInterviewThreshold] = useState(
+    DEFAULT_THRESHOLDS.interview
+  );
+  const [considerThreshold, setConsiderThreshold] = useState(
+    DEFAULT_THRESHOLDS.consider
+  );
 
   const [resumeSummary, setResumeSummary] = useState({
     total: 0,
@@ -122,6 +133,22 @@ function Home() {
       return;
     }
 
+    if (
+      Number.isNaN(interviewThreshold) ||
+      Number.isNaN(considerThreshold) ||
+      considerThreshold >= interviewThreshold
+    ) {
+      alert(
+        "Consider Threshold must be a lower number than Interview Threshold."
+      );
+      return;
+    }
+
+    const thresholds: Thresholds = {
+      interview: interviewThreshold,
+      consider: considerThreshold,
+    };
+
     setAnalyzing(true);
 
     try {
@@ -134,8 +161,12 @@ function Home() {
         ANALYSIS_STORAGE_KEY,
         JSON.stringify(data)
       );
+      sessionStorage.setItem(
+        THRESHOLDS_STORAGE_KEY,
+        JSON.stringify(thresholds)
+      );
 
-      navigate("/results", { state: { analysis: data } });
+      navigate("/results", { state: { analysis: data, thresholds } });
     } catch (error) {
       console.error(error);
 
@@ -332,7 +363,10 @@ function Home() {
 
             <Input
               type="number"
-              defaultValue={85}
+              value={interviewThreshold}
+              onChange={(e) =>
+                setInterviewThreshold(Number(e.target.value))
+              }
             />
           </div>
 
@@ -343,7 +377,10 @@ function Home() {
 
             <Input
               type="number"
-              defaultValue={70}
+              value={considerThreshold}
+              onChange={(e) =>
+                setConsiderThreshold(Number(e.target.value))
+              }
             />
           </div>
         </div>

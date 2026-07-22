@@ -4,14 +4,16 @@ import Card from "../components/Card/Card";
 import Button from "../components/Button/Button";
 
 import type { AnalyzeResponse, CandidateResult } from "../services/api";
-import { ANALYSIS_STORAGE_KEY } from "./Home";
+import {
+  ANALYSIS_STORAGE_KEY,
+  THRESHOLDS_STORAGE_KEY,
+  DEFAULT_THRESHOLDS,
+} from "../lib/analysisStorage";
+import type { Thresholds } from "../lib/analysisStorage";
 
-const INTERVIEW_THRESHOLD = 85;
-const CONSIDER_THRESHOLD = 70;
-
-function statusFor(score: number) {
-  if (score >= INTERVIEW_THRESHOLD) return "Interview";
-  if (score >= CONSIDER_THRESHOLD) return "Consider";
+function statusFor(score: number, thresholds: Thresholds) {
+  if (score >= thresholds.interview) return "Interview";
+  if (score >= thresholds.consider) return "Consider";
   return "Reject";
 }
 
@@ -49,11 +51,29 @@ function loadAnalysis(state: unknown): AnalyzeResponse | null {
   return null;
 }
 
+function loadThresholds(state: unknown): Thresholds {
+  if (state && typeof state === "object" && "thresholds" in state) {
+    return (state as { thresholds: Thresholds }).thresholds;
+  }
+
+  const cached = sessionStorage.getItem(THRESHOLDS_STORAGE_KEY);
+  if (cached) {
+    try {
+      return JSON.parse(cached) as Thresholds;
+    } catch {
+      return DEFAULT_THRESHOLDS;
+    }
+  }
+
+  return DEFAULT_THRESHOLDS;
+}
+
 function Results() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const analysis = loadAnalysis(location.state);
+  const thresholds = loadThresholds(location.state);
 
   if (!analysis || analysis.results.length === 0) {
     return (
@@ -77,7 +97,7 @@ function Results() {
 
   const counts = candidates.reduce(
     (acc, candidate) => {
-      const status = statusFor(candidate.ats.ats_score);
+      const status = statusFor(candidate.ats.ats_score, thresholds);
       acc[status] += 1;
       return acc;
     },
@@ -86,7 +106,7 @@ function Results() {
 
   function viewCandidate(candidate: CandidateResult) {
     navigate(`/candidate/${encodeURIComponent(candidate.filename)}`, {
-      state: { candidate, bucket },
+      state: { candidate, bucket, thresholds },
     });
   }
 
@@ -106,7 +126,8 @@ function Results() {
 
         <p className="text-slate-600 dark:text-slate-300">
           Ranked candidates for bucket "{analysis.bucket}" based on ATS
-          score.
+          score. Interview ≥ {thresholds.interview}, Consider ≥{" "}
+          {thresholds.consider}.
         </p>
 
         {analysis.failed.length > 0 && (
@@ -156,7 +177,7 @@ function Results() {
 
             <tbody>
               {candidates.map((candidate, index) => {
-                const status = statusFor(candidate.ats.ats_score);
+                const status = statusFor(candidate.ats.ats_score, thresholds);
 
                 return (
                   <tr
