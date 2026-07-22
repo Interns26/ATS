@@ -11,7 +11,13 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 
-from app.services.storage import upload_file, download_file, list_files, delete_file
+from app.services.storage import (
+    DEFAULT_BUCKET,
+    upload_file,
+    download_file,
+    list_files,
+    delete_file,
+)
 
 router = APIRouter(prefix="/storage", tags=["storage"])
 
@@ -46,7 +52,12 @@ async def upload(file: UploadFile = File(...)):
     candidate_id = str(uuid.uuid4())
     object_key = f"candidates/candidate-{candidate_id}/resume{ext}"
 
-    upload_file(object_key, contents, content_type=file.content_type or "application/octet-stream")
+    upload_file(
+        DEFAULT_BUCKET,
+        object_key,
+        contents,
+        content_type=file.content_type or "application/octet-stream",
+    )
 
     return {
         "candidate_id": candidate_id,
@@ -59,14 +70,14 @@ async def upload(file: UploadFile = File(...)):
 @router.get("/list")
 async def list_all(prefix: str = ""):
     """List everything currently in the bucket, optionally filtered by prefix."""
-    return {"files": list_files(prefix)}
+    return {"files": list_files(DEFAULT_BUCKET, prefix)}
 
 
 @router.get("/download/{object_key:path}")
 async def download(object_key: str):
     """Download a file back out of MinIO by its key, e.g. candidates/candidate-abc/resume.pdf"""
     try:
-        content = download_file(object_key)
+        content = download_file(DEFAULT_BUCKET, object_key)
     except Exception:
         raise HTTPException(404, f"File not found: {object_key}")
 
@@ -80,5 +91,5 @@ async def download(object_key: str):
 
 @router.delete("/{object_key:path}")
 async def delete(object_key: str):
-    delete_file(object_key)
+    delete_file(DEFAULT_BUCKET, object_key)
     return {"deleted": object_key}

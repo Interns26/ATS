@@ -1,11 +1,11 @@
 from langgraph.graph import StateGraph
 from langgraph.graph import END
 
-from state import ResumeState
+from .state import ResumeState
 
-from nodes import extract_text_node
-from nodes import parse_resume_node
-from nodes import ats_node
+from .nodes import extract_text_node
+from .nodes import parse_resume_node
+from .nodes import ats_node
 
 
 builder = StateGraph(ResumeState)

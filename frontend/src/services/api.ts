@@ -1,5 +1,49 @@
 const API_URL = "http://localhost:8000";
 
+export type MatchedSection = {
+  job_requirement: string;
+  resume_evidence: string;
+};
+
+export type ParsedResume = {
+  id: string | null;
+  name: string | null;
+  cgpa: string | null;
+  university: string | null;
+  projects: string[];
+  skills: string[];
+  experience: string[];
+  certifications: string[];
+};
+
+export type ATSResult = {
+  ats_score: number;
+  recommendation: string;
+  matched_skills: string[];
+  missing_skills: string[];
+  strengths: string[];
+  recommendations: string[];
+  matched_sections: MatchedSection[];
+  missing_requirements: string[];
+};
+
+export type CandidateResult = {
+  filename: string;
+  resume: ParsedResume;
+  ats: ATSResult;
+};
+
+export type AnalyzeError = {
+  filename: string;
+  error: string;
+};
+
+export type AnalyzeResponse = {
+  bucket: string;
+  results: CandidateResult[];
+  failed: AnalyzeError[];
+};
+
 export async function getBuckets() {
   const response = await fetch(`${API_URL}/buckets/`);
 
@@ -17,6 +61,29 @@ export async function getResumes(bucketName: string) {
 
   if (!response.ok) {
     throw new Error("Failed to load resumes");
+  }
+
+  return response.json();
+}
+
+export async function analyzeCandidates(
+  bucketName: string,
+  jobDescription: string
+): Promise<AnalyzeResponse> {
+  const response = await fetch(
+    `${API_URL}/analyze/${encodeURIComponent(bucketName)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_description: jobDescription }),
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(
+      detail?.detail ?? "Failed to analyze candidates."
+    );
   }
 
   return response.json();

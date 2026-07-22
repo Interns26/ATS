@@ -1,122 +1,57 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
 import CircularProgress from "../components/CircularProgress/CircularProgress";
 
+import type { AnalyzeResponse, CandidateResult } from "../services/api";
+import { ANALYSIS_STORAGE_KEY } from "./Home";
+
+function loadAnalysisBucket(): string | null {
+  const cached = sessionStorage.getItem(ANALYSIS_STORAGE_KEY);
+  if (!cached) return null;
+
+  try {
+    return (JSON.parse(cached) as AnalyzeResponse).bucket ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function loadCandidate(
+  state: unknown,
+  filename: string | undefined
+): { candidate: CandidateResult; bucket: string | null } | null {
+  if (state && typeof state === "object" && "candidate" in state) {
+    const stateBucket =
+      "bucket" in state ? (state as { bucket?: string }).bucket ?? null : null;
+    return {
+      candidate: (state as { candidate: CandidateResult }).candidate,
+      bucket: stateBucket ?? loadAnalysisBucket(),
+    };
+  }
+
+  if (!filename) return null;
+
+  const cached = sessionStorage.getItem(ANALYSIS_STORAGE_KEY);
+  if (!cached) return null;
+
+  try {
+    const analysis = JSON.parse(cached) as AnalyzeResponse;
+    const found = analysis.results.find((c) => c.filename === filename);
+    return found ? { candidate: found, bucket: analysis.bucket } : null;
+  } catch {
+    return null;
+  }
+}
+
 function CandidateDetails() {
   const { id } = useParams();
+  const location = useLocation();
 
-  const candidates = [
-    {
-      id: 1,
-      name: "Ahmed Khan",
-      atsScore: 94,
-      email: "ahmed@example.com",
-      phone: "+92 300 1234567",
-      experience: "5 Years",
-      education: "BS Computer Science",
-      matchedSkills: [
-        "Python",
-        "FastAPI",
-        "Docker",
-        "PostgreSQL",
-        "Git",
-        "REST APIs",
-      ],
-      missingSkills: ["AWS", "Kubernetes"],
-      strengths: [
-        "Strong backend development experience",
-        "Relevant education",
-        "Excellent keyword match",
-      ],
-      improvements: [
-        "Add cloud experience",
-        "Mention Kubernetes projects",
-        "Include measurable achievements",
-      ],
-    },
-    {
-      id: 2,
-      name: "Sarah Ali",
-      atsScore: 91,
-      email: "sarah@example.com",
-      phone: "+92 301 5551212",
-      experience: "4 Years",
-      education: "BS Software Engineering",
-      matchedSkills: [
-        "Java",
-        "Spring Boot",
-        "Docker",
-        "SQL",
-        "Git",
-      ],
-      missingSkills: ["AWS"],
-      strengths: [
-        "Excellent backend skills",
-        "Strong project portfolio",
-      ],
-      improvements: [
-        "Highlight leadership experience",
-        "Add cloud certifications",
-      ],
-    },
-    {
-      id: 3,
-      name: "John Smith",
-      atsScore: 84,
-      email: "john@example.com",
-      phone: "+1 555 123456",
-      experience: "3 Years",
-      education: "BS Information Technology",
-      matchedSkills: [
-        "React",
-        "TypeScript",
-        "Node.js",
-      ],
-      missingSkills: [
-        "Docker",
-        "PostgreSQL",
-      ],
-      strengths: [
-        "Strong frontend developer",
-      ],
-      improvements: [
-        "Gain backend experience",
-        "Improve database knowledge",
-      ],
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      atsScore: 61,
-      email: "emily@example.com",
-      phone: "+1 555 987654",
-      experience: "1 Year",
-      education: "BS Computer Science",
-      matchedSkills: [
-        "HTML",
-        "CSS",
-      ],
-      missingSkills: [
-        "Python",
-        "Docker",
-        "Git",
-        "FastAPI",
-      ],
-      strengths: [
-        "Good communication",
-      ],
-      improvements: [
-        "Build more technical projects",
-        "Learn backend development",
-      ],
-    },
-  ];
-
-  const candidate = candidates.find(
-    (c) => c.id === Number(id)
-  );
+  const loaded = loadCandidate(location.state, id);
+  const candidate = loaded?.candidate ?? null;
+  const bucket = loaded?.bucket ?? null;
 
   if (!candidate) {
     return (
@@ -132,17 +67,19 @@ function CandidateDetails() {
     );
   }
 
+  const { resume, ats } = candidate;
+
   const recommendation =
-    candidate.atsScore >= 85
+    ats.ats_score >= 85
       ? "Interview Recommended"
-      : candidate.atsScore >= 70
+      : ats.ats_score >= 70
       ? "Consider"
       : "Reject";
 
   const recommendationColor =
-    candidate.atsScore >= 85
+    ats.ats_score >= 85
       ? "bg-green-100 text-green-700"
-      : candidate.atsScore >= 70
+      : ats.ats_score >= 70
       ? "bg-yellow-100 text-yellow-700"
       : "bg-red-100 text-red-700";
 
@@ -151,7 +88,7 @@ function CandidateDetails() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">
-            {candidate.name}
+            {resume.name || candidate.filename}
           </h1>
 
           <p className="mt-1 text-slate-600 dark:text-slate-300">
@@ -167,44 +104,64 @@ function CandidateDetails() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card title="ATS Score">
           <div className="flex flex-col items-center gap-5">
-            <CircularProgress score={candidate.atsScore} />
+            <CircularProgress score={ats.ats_score} />
 
             <span
               className={`rounded-full px-4 py-2 font-semibold ${recommendationColor}`}
             >
               {recommendation}
             </span>
+
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              Model recommendation: {ats.recommendation}
+            </p>
           </div>
         </Card>
 
         <Card title="Candidate Information">
           <div className="space-y-3">
             <div>
-              <strong>Email:</strong>
+              <strong>CGPA:</strong>
               <p className="text-slate-600 dark:text-slate-300">
-                {candidate.email}
+                {resume.cgpa || "Not found"}
               </p>
             </div>
 
             <div>
-              <strong>Phone:</strong>
+              <strong>University:</strong>
               <p className="text-slate-600 dark:text-slate-300">
-                {candidate.phone}
+                {resume.university || "Not found"}
               </p>
             </div>
 
             <div>
               <strong>Experience:</strong>
-              <p className="text-slate-600 dark:text-slate-300">
-                {candidate.experience}
-              </p>
+              {resume.experience.length === 0 ? (
+                <p className="text-slate-600 dark:text-slate-300">
+                  Not found
+                </p>
+              ) : (
+                <ul className="list-disc pl-5 text-slate-600 dark:text-slate-300">
+                  {resume.experience.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div>
-              <strong>Education:</strong>
-              <p className="text-slate-600 dark:text-slate-300">
-                {candidate.education}
-              </p>
+              <strong>Certifications:</strong>
+              {resume.certifications.length === 0 ? (
+                <p className="text-slate-600 dark:text-slate-300">
+                  Not found
+                </p>
+              ) : (
+                <ul className="list-disc pl-5 text-slate-600 dark:text-slate-300">
+                  {resume.certifications.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </Card>
@@ -212,63 +169,87 @@ function CandidateDetails() {
         <Card title="Resume">
           <div className="flex h-full flex-col justify-between gap-4">
             <p className="text-slate-600 dark:text-slate-300">
-              Original resume stored in MinIO.
+              Original file: {candidate.filename}
             </p>
 
-            <Button>
-              Download Resume
-            </Button>
+            {bucket ? (
+              <a
+                href={`http://localhost:8000/resumes/${encodeURIComponent(
+                  bucket
+                )}/download/${encodeURIComponent(candidate.filename)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Button className="w-full">Download Resume</Button>
+              </a>
+            ) : (
+              <Button className="w-full" disabled>
+                Download Resume
+              </Button>
+            )}
           </div>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Matched Skills">
-          <div className="flex flex-wrap gap-3">
-            {candidate.matchedSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
+          {ats.matched_skills.length === 0 ? (
+            <p className="text-slate-500">None detected.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {ats.matched_skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card title="Missing Skills">
-          <div className="flex flex-wrap gap-3">
-            {candidate.missingSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-700"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
+          {ats.missing_skills.length === 0 ? (
+            <p className="text-slate-500">None — great match.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {ats.missing_skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-700"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Strengths">
-          <ul className="list-disc space-y-2 pl-6">
-            {candidate.strengths.map((strength) => (
-              <li key={strength}>
-                {strength}
-              </li>
-            ))}
-          </ul>
+          {ats.strengths.length === 0 ? (
+            <p className="text-slate-500">No strengths identified.</p>
+          ) : (
+            <ul className="list-disc space-y-2 pl-6">
+              {ats.strengths.map((strength) => (
+                <li key={strength}>{strength}</li>
+              ))}
+            </ul>
+          )}
         </Card>
 
         <Card title="Recommendations">
-          <ul className="list-disc space-y-2 pl-6">
-            {candidate.improvements.map((item) => (
-              <li key={item}>
-                {item}
-              </li>
-            ))}
-          </ul>
+          {ats.recommendations.length === 0 ? (
+            <p className="text-slate-500">No suggestions.</p>
+          ) : (
+            <ul className="list-disc space-y-2 pl-6">
+              {ats.recommendations.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

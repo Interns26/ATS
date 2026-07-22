@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
@@ -7,7 +7,10 @@ import Select from "../components/Select/Select";
 import Input from "../components/Input/Input";
 import TextArea from "../components/TextArea/TextArea";
 
-import { getBuckets, getResumes } from "../services/api";
+import { getBuckets, getResumes, analyzeCandidates } from "../services/api";
+import type { AnalyzeResponse } from "../services/api";
+
+export const ANALYSIS_STORAGE_KEY = "ats:last-analysis";
 
 type Resume = {
   filename: string;
@@ -16,9 +19,13 @@ type Resume = {
 };
 
 function Home() {
+  const navigate = useNavigate();
+
   const [buckets, setBuckets] = useState<string[]>([]);
   const [selectedBucket, setSelectedBucket] = useState("");
   const [connected, setConnected] = useState(false);
+
+  const [analyzing, setAnalyzing] = useState(false);
 
   const [resumes, setResumes] = useState<Resume[]>([]);
 
@@ -86,6 +93,44 @@ function Home() {
   }
 
   useEffect(() => {}, []);
+
+  async function handleAnalyze() {
+    if (!selectedBucket) {
+      alert("Please select and connect to a resume bucket first.");
+      return;
+    }
+
+    if (!jobDescription.trim()) {
+      alert("Please enter or upload a job description first.");
+      return;
+    }
+
+    setAnalyzing(true);
+
+    try {
+      const data: AnalyzeResponse = await analyzeCandidates(
+        selectedBucket,
+        jobDescription
+      );
+
+      sessionStorage.setItem(
+        ANALYSIS_STORAGE_KEY,
+        JSON.stringify(data)
+      );
+
+      navigate("/results", { state: { analysis: data } });
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to analyze candidates."
+      );
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -317,11 +362,9 @@ function Home() {
       </Card>
 
       <div className="flex justify-end">
-        <Link to="/results">
-          <Button>
-            Analyze Candidates
-          </Button>
-        </Link>
+        <Button onClick={handleAnalyze} disabled={analyzing}>
+          {analyzing ? "Analyzing…" : "Analyze Candidates"}
+        </Button>
       </div>
     </div>
   );

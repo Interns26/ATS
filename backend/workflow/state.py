@@ -1,7 +1,7 @@
 from typing import TypedDict
 
-from models import ResumeInfo
-from models import ATSResult
+from .models import ResumeInfo
+from .models import ATSResult
 
 
 class ResumeState(TypedDict):

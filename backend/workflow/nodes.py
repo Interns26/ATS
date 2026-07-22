@@ -2,16 +2,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
-from parser import extract_resume_text
+from .parser import extract_resume_text
 
-from prompts import RESUME_PROMPT
-from prompts import ATS_PROMPT
+from .prompts import RESUME_PROMPT
+from .prompts import ATS_PROMPT
 
-from models import ResumeInfo
-from models import ATSResult
+from .models import ResumeInfo
+from .models import ATSResult
 from langchain_core.output_parsers import PydanticOutputParser
 
 resume_parser = PydanticOutputParser(pydantic_object=ResumeInfo)
