@@ -3,6 +3,8 @@ uvicorn[standard]
 python-dotenv
 minio
 python-multipart
+python-jose[cryptography]
+bcrypt
 
 
 annotated-types==0.7.0
