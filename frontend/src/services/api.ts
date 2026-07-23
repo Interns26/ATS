@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:8000";
+import { getToken, clearToken } from "../lib/auth";
+
+export const API_URL = "http://localhost:8000";
 
 export type MatchedSection = {
   job_requirement: string;
@@ -44,8 +46,63 @@ export type AnalyzeResponse = {
   failed: AnalyzeError[];
 };
 
+export type LoginResponse = {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+};
+
+/**
+ * Wraps `fetch` to attach the stored bearer token to every request, and to
+ * handle an expired/invalid session in one place: on a 401, we clear the
+ * stored token and bounce to /login rather than making every page handle it.
+ */
+async function apiFetch(
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const token = getToken();
+
+  const headers = new Headers(options.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    clearToken();
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+  }
+
+  return response;
+}
+
+export async function login(
+  username: string,
+  password: string
+): Promise<LoginResponse> {
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Invalid username or password.");
+  }
+
+  return response.json();
+}
+
 export async function getBuckets() {
-  const response = await fetch(`${API_URL}/buckets/`);
+  const response = await apiFetch("/buckets/");
 
   if (!response.ok) {
     throw new Error("Failed to load buckets");
@@ -55,9 +112,7 @@ export async function getBuckets() {
 }
 
 export async function getResumes(bucketName: string) {
-  const response = await fetch(
-    `${API_URL}/resumes/${bucketName}`
-  );
+  const response = await apiFetch(`/resumes/${bucketName}`);
 
   if (!response.ok) {
     throw new Error("Failed to load resumes");
@@ -70,7 +125,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_URL}/documents/extract-text`, {
+  const response = await apiFetch("/documents/extract-text", {
     method: "POST",
     body: formData,
   });
@@ -90,8 +145,8 @@ export async function analyzeCandidates(
   bucketName: string,
   jobDescription: string
 ): Promise<AnalyzeResponse> {
-  const response = await fetch(
-    `${API_URL}/analyze/${encodeURIComponent(bucketName)}`,
+  const response = await apiFetch(
+    `/analyze/${encodeURIComponent(bucketName)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,4 +162,26 @@ export async function analyzeCandidates(
   }
 
   return response.json();
+}
+
+/**
+ * Downloads a resume as a Blob (rather than a plain <a href>), since the
+ * download route now requires an Authorization header — something a plain
+ * anchor tag can't send.
+ */
+export async function downloadResume(
+  bucket: string,
+  filename: string
+): Promise<Blob> {
+  const response = await apiFetch(
+    `/resumes/${encodeURIComponent(bucket)}/download/${encodeURIComponent(
+      filename
+    )}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to download resume.");
+  }
+
+  return response.blob();
 }

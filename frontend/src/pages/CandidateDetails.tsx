@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import Button from "../components/Button/Button";
@@ -5,7 +6,31 @@ import Card from "../components/Card/Card";
 import CircularProgress from "../components/CircularProgress/CircularProgress";
 
 import type { AnalyzeResponse, CandidateResult } from "../services/api";
-import { ANALYSIS_STORAGE_KEY } from "../lib/analysisStorage";
+import { downloadResume } from "../services/api";
+import {
+  ANALYSIS_STORAGE_KEY,
+  THRESHOLDS_STORAGE_KEY,
+  DEFAULT_THRESHOLDS,
+} from "../lib/analysisStorage";
+import type { Thresholds } from "../lib/analysisStorage";
+
+function loadThresholds(state: unknown): Thresholds {
+  if (state && typeof state === "object" && "thresholds" in state) {
+    const stateThresholds = (state as { thresholds?: Thresholds }).thresholds;
+    if (stateThresholds) return stateThresholds;
+  }
+
+  const cached = sessionStorage.getItem(THRESHOLDS_STORAGE_KEY);
+  if (cached) {
+    try {
+      return JSON.parse(cached) as Thresholds;
+    } catch {
+      return DEFAULT_THRESHOLDS;
+    }
+  }
+
+  return DEFAULT_THRESHOLDS;
+}
 
 function loadAnalysisBucket(): string | null {
   const cached = sessionStorage.getItem(ANALYSIS_STORAGE_KEY);
@@ -49,9 +74,32 @@ function CandidateDetails() {
   const { id } = useParams();
   const location = useLocation();
 
+  const [downloading, setDownloading] = useState(false);
+
   const loaded = loadCandidate(location.state, id);
   const candidate = loaded?.candidate ?? null;
   const bucket = loaded?.bucket ?? null;
+  const thresholds = loadThresholds(location.state);
+
+  async function handleDownload(bucketName: string, filename: string) {
+    setDownloading(true);
+    try {
+      const blob = await downloadResume(bucketName, filename);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename.split("/").pop() ?? filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("Unable to download resume.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (!candidate) {
     return (
@@ -70,16 +118,16 @@ function CandidateDetails() {
   const { resume, ats } = candidate;
 
   const recommendation =
-    ats.ats_score >= 85
+    ats.ats_score >= thresholds.interview
       ? "Interview Recommended"
-      : ats.ats_score >= 70
+      : ats.ats_score >= thresholds.consider
       ? "Consider"
       : "Reject";
 
   const recommendationColor =
-    ats.ats_score >= 85
+    ats.ats_score >= thresholds.interview
       ? "bg-green-100 text-green-700"
-      : ats.ats_score >= 70
+      : ats.ats_score >= thresholds.consider
       ? "bg-yellow-100 text-yellow-700"
       : "bg-red-100 text-red-700";
 
@@ -172,21 +220,13 @@ function CandidateDetails() {
               Original file: {candidate.filename}
             </p>
 
-            {bucket ? (
-              <a
-                href={`http://localhost:8000/resumes/${encodeURIComponent(
-                  bucket
-                )}/download/${encodeURIComponent(candidate.filename)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button className="w-full">Download Resume</Button>
-              </a>
-            ) : (
-              <Button className="w-full" disabled>
-                Download Resume
-              </Button>
-            )}
+            <Button
+              className="w-full"
+              disabled={!bucket || downloading}
+              onClick={() => bucket && handleDownload(bucket, candidate.filename)}
+            >
+              {downloading ? "Downloading…" : "Download Resume"}
+            </Button>
           </div>
         </Card>
       </div>
