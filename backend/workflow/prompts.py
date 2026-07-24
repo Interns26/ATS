@@ -1,5 +1,5 @@
-from models import ResumeInfo
-from models import ATSResult
+from .models import ResumeInfo
+from .models import ATSResult
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 

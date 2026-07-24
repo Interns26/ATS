@@ -1,8 +1,11 @@
+# Standalone demo script — run from the backend/ directory with:
+#   python -m workflow.app
+# (workflow is now a package, so it must be run with -m, not `python workflow/app.py`)
 from concurrent.futures import ThreadPoolExecutor
 
 from pathlib import Path
 
-from graph import graph
+from .graph import graph
 
 
 JOB_DESCRIPTION = """

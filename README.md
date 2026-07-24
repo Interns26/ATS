@@ -7,9 +7,9 @@ An AI-powered Applicant Tracking System (ATS) that allows recruiters to retrieve
 > - ✅ React frontend completed
 > - ✅ FastAPI backend for MinIO integration completed
 > - ✅ MinIO bucket selection implemented
-> - 🚧 Resume parsing (In Progress)
-> - 🚧 LangGraph workflow (In Progress)
-> - 🚧 ATS scoring pipeline (In Progress)
+> - ✅ Resume parsing
+> - ✅ LangGraph workflow 
+> - ✅ ATS scoring pipeline 
 
 ---
 

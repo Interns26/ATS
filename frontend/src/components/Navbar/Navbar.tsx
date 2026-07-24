@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+import { clearToken } from "../../lib/auth";
 
 type NavbarProps = {
   darkMode: boolean;
@@ -9,6 +11,13 @@ function Navbar({
   darkMode,
   setDarkMode,
 }: NavbarProps) {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    clearToken();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <nav className="border-b border-slate-200 bg-white shadow transition-colors dark:border-slate-700 dark:bg-slate-800">
       <div className="mx-auto flex max-w-7xl items-center justify-between p-4">
@@ -39,6 +48,13 @@ function Navbar({
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600"
           >
             {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600"
+          >
+            Log Out
           </button>
         </div>
       </div>
