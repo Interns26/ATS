@@ -91,6 +91,10 @@ def ats_node(state):
     )
     response = llm.invoke(prompt_text)
     result = ats_parser.parse(response.content)
+    i = len(result.missing_skills)
+    j = len(result.matched_skills)
+    result.ats_score = int((j / (i + j)) * 100) if (i + j) > 0 else 0
+    
     return {
         "ats_result": result
     }
