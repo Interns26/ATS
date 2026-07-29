@@ -8,7 +8,7 @@ function Input({
 }: InputProps) {
   return (
     <input
-      className={`w-full rounded-lg border border-slate-300 bg-white px-4 py-2 outline-none transition focus:border-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white ${className}`}
+      className={`w-full rounded-lg px-4 py-2 outline-none transition app-input ${className}`}
       {...props}
     />
   );

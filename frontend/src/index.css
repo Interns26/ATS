@@ -1,3 +1,185 @@
 @import "tailwindcss";
 
+/* Application design tokens (light defaults) */
+:root {
+	--bg: #f6f9fc; /* light page background */
+	--panel: #ffffff;
+	--muted: #6b7280;
+	--primary: #1f6feb; /* professional blue (light) */
+	--primary-600: #1558c6;
+	--card-bg: #ffffff;
+	--text: #0f1724;
+	--success: #16a34a;
+	--warning: #f59e0b;
+	--danger: #ef4444;
+	--card-border: rgba(0,0,0,0.18); /* stronger black-ish boundary in light mode */
+	--nav-border: rgba(0,0,0,0.18);
+	--nav-shadow: 0 6px 18px rgba(2,6,23,0.08);
+}
+
+/* Dark mode overrides (applied when document.documentElement has `.dark`) */
+.dark {
+	--bg: #0b1220; /* deep navy */
+	--panel: #0f1724; /* slightly lighter panel */
+	--muted: #9aa4b2;
+	--primary: #2563eb; /* professional blue (dark) */
+	--primary-600: #1e40af;
+	--card-bg: #0f1728;
+	--text: #e6eef5;
+	--success: #16a34a;
+	--warning: #f59e0b;
+	--danger: #ef4444;
+	--card-border: rgba(255,255,255,0.06);
+	--nav-border: rgba(255,255,255,0.06);
+	--nav-shadow: 0 8px 20px rgba(2,6,23,0.5);
+}
+
+/* App-level utilities to create a consistent visual language */
+body {
+	background: radial-gradient(ellipse at top left, rgba(37,99,235,0.03), transparent 20%), var(--bg);
+	color: var(--text);
+}
+
+.app-navbar {
+	background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+	border-bottom: 1px solid rgba(255,255,255,0.04);
+	color: var(--text);
+}
+.app-navbar {
+	background: var(--panel);
+	border-bottom: 1px solid var(--nav-border);
+	color: var(--text);
+	box-shadow: var(--nav-shadow);
+	position: sticky;
+	top: 0;
+	z-index: 40;
+}
+
+.app-navbar .nav-links > * + * {
+	padding-left: 0.9rem;
+	margin-left: 0.9rem;
+	border-left: 1px solid var(--card-border);
+}
+
+.app-navbar .brand {
+	padding-right: 0.5rem;
+	margin-right: 0.5rem;
+	border-right: 1px solid var(--card-border);
+}
+
+.app-card {
+	background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+	border: 1px solid var(--card-border);
+	box-shadow: 0 8px 20px rgba(2,6,23,0.5);
+	backdrop-filter: blur(4px);
+}
+.app-card {
+	background: var(--card-bg);
+	border: 1px solid var(--card-border);
+	box-shadow: 0 12px 30px rgba(2,6,23,0.06);
+	backdrop-filter: blur(3px);
+}
+
+.app-btn {
+	background: linear-gradient(180deg, var(--primary), var(--primary-600));
+	color: white;
+	border: 1px solid rgba(0,0,0,0.08);
+	box-shadow: 0 6px 14px rgba(37,99,235,0.18);
+}
+.app-btn:hover { background: linear-gradient(180deg, var(--primary-600), #163ea5); }
+
+.app-input,
+.app-select,
+.app-textarea {
+	background: rgba(255,255,255,0.02);
+	border: 1px solid var(--card-border);
+	color: var(--text);
+	box-shadow: inset 0 1px 0 rgba(255,255,255,0.01);
+}
+.app-input,
+.app-select,
+.app-textarea {
+	background: var(--card-bg);
+	border: 1px solid var(--card-border);
+	color: var(--text);
+	box-shadow: none;
+}
+.app-input:focus,
+.app-textarea:focus,
+.app-select:focus {
+	outline: none;
+	box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
+	border-color: rgba(37,99,235,0.9);
+}
+
+.app-overlay {
+	background: linear-gradient(180deg, rgba(2,6,23,0.85), rgba(2,6,23,0.75));
+}
+
+/* Table & list wrappers to provide clear boundaries */
+.table-wrap {
+	background: var(--card-bg);
+	border: 1px solid var(--card-border);
+	border-radius: 10px;
+	padding: 0.75rem;
+	box-shadow: 0 8px 18px rgba(2,6,23,0.35);
+	overflow: hidden;
+}
+.table-wrap {
+	background: var(--card-bg);
+	border: 1px solid var(--card-border);
+	border-radius: 10px;
+	padding: 0.5rem;
+	box-shadow: 0 10px 24px rgba(2,6,23,0.06);
+	overflow: hidden;
+}
+
+.table-wrap table {
+	border-collapse: separate;
+	border-spacing: 0;
+	width: 100%;
+}
+
+/* Small helpers */
+.muted { color: var(--muted); }
+.pill { border-radius: 9999px; padding: 0.25rem 0.75rem; display: inline-block; }
+
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Table utilities */
+.table-header {
+	background: rgba(255,255,255,0.01);
+	border-bottom: 1px solid var(--card-border);
+}
+.table-header {
+	background: rgba(0,0,0,0.04);
+	border-bottom: 1px solid var(--card-border);
+}
+
+.table-row {
+	border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+.table-row:hover { background: rgba(255,255,255,0.02); }
+.table-row:hover { background: rgba(0,0,0,0.03); }
+
+/* stronger separators for cells in light mode */
+.table-wrap td,
+.table-wrap th {
+	border-right: 1px solid rgba(0,0,0,0.03);
+}
+.table-wrap td:last-child,
+.table-wrap th:last-child { border-right: none; }
+
+/* Resume card specific styling */
+.resume-content {
+	font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+	font-size: 0.95rem;
+	line-height: 1.6;
+	color: var(--text);
+}
+
+.resume-filename {
+	font-weight: 600;
+	color: var(--muted);
+	font-size: 0.9rem;
+}

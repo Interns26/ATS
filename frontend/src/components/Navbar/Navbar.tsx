@@ -19,40 +19,33 @@ function Navbar({
   }
 
   return (
-    <nav className="border-b border-slate-200 bg-white shadow transition-colors dark:border-slate-700 dark:bg-slate-800">
+    <nav className={`app-navbar`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between p-4">
-        <Link
-          to="/"
-          className="text-xl font-bold transition hover:text-blue-600 dark:hover:text-blue-400"
-        >
-          ATS Resume Analyzer
-        </Link>
+        <div className="flex items-center">
+          <Link to="/" className="text-xl font-bold transition brand">
+            ATS Resume Analyzer
+          </Link>
+        </div>
 
-        <div className="flex items-center gap-6">
-          <Link
-            to="/"
-            className="transition hover:text-blue-600 dark:hover:text-blue-400"
-          >
+        <div className="flex items-center nav-links">
+          <Link to="/" className="transition">
             Home
           </Link>
 
-          <Link
-            to="/results"
-            className="transition hover:text-blue-600 dark:hover:text-blue-400"
-          >
+          <Link to="/results" className="transition">
             Results
           </Link>
 
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600"
+            className="rounded-lg px-4 py-2 transition app-btn"
           >
             {darkMode ? "☀️ Light" : "🌙 Dark"}
           </button>
 
           <button
             onClick={handleLogout}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600"
+            className="rounded-lg px-4 py-2 transition app-btn"
           >
             Log Out
           </button>

@@ -7,9 +7,9 @@ type CardProps = {
 
 function Card({ title, children }: CardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-colors duration-300 dark:border-slate-700 dark:bg-slate-800">
+    <div className={`rounded-xl p-6 transition-colors duration-300 app-card ${title ? "" : ""}`}>
       {title && (
-        <h2 className="mb-4 text-xl font-semibold dark:text-white">
+        <h2 className="mb-4 text-xl font-semibold">
           {title}
         </h2>
       )}

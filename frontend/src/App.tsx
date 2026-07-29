@@ -80,7 +80,7 @@ function App() {
   }, [darkMode]);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100">
+    <div className="min-h-screen transition-colors duration-300">
       <BrowserRouter>
         <AppShell darkMode={darkMode} setDarkMode={setDarkMode} />
       </BrowserRouter>

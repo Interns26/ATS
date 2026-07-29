@@ -15,7 +15,7 @@ function Select({
       onChange={(e) =>
         onChange(e.target.value)
       }
-      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 dark:border-slate-600 dark:bg-slate-700"
+      className="w-full rounded-lg px-4 py-2 app-select"
     >
       <option value="">
         Select Bucket

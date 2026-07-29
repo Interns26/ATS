@@ -196,7 +196,7 @@ function Home() {
             ATS Resume Analyzer
           </h1>
 
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
+          <p className="mt-2 muted">
             Select a resume bucket, load resumes, then upload a job description
             for analysis.
           </p>
@@ -236,7 +236,7 @@ function Home() {
                   }`}
                 ></span>
 
-                <span className="text-slate-600 dark:text-slate-300">
+                <span className="muted">
                   {connected
                     ? "Connected"
                     : "Not Connected"}
@@ -276,14 +276,14 @@ function Home() {
 
         <Card title="Available Resumes">
           {resumes.length === 0 ? (
-            <p className="text-slate-500">
+            <p className="muted">
               No resumes loaded.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto table-wrap">
               <table className="min-w-full">
                 <thead>
-                  <tr className="border-b bg-slate-100 dark:bg-slate-700">
+                  <tr className="border-b table-header">
                     <th className="p-3 text-left">
                       Filename
                     </th>
@@ -302,7 +302,7 @@ function Home() {
                   {resumes.map((resume) => (
                     <tr
                       key={resume.filename}
-                      className="border-b hover:bg-slate-50 dark:hover:bg-slate-800"
+                      className="border-b table-row"
                     >
                       <td className="p-3">
                         {resume.filename}
@@ -340,7 +340,7 @@ function Home() {
               />
 
               {extractingJD && (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm muted">
                   Extracting text from {jdFileName}…
                 </p>
               )}

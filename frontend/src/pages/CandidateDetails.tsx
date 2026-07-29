@@ -139,7 +139,7 @@ function CandidateDetails() {
             {resume.name || candidate.filename}
           </h1>
 
-          <p className="mt-1 text-slate-600 dark:text-slate-300">
+          <p className="mt-1 muted">
             Detailed ATS analysis for this candidate.
           </p>
         </div>
@@ -160,9 +160,6 @@ function CandidateDetails() {
               {recommendation}
             </span>
 
-            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-              Model recommendation: {ats.recommendation}
-            </p>
           </div>
         </Card>
 
@@ -170,14 +167,14 @@ function CandidateDetails() {
           <div className="space-y-3">
             <div>
               <strong>CGPA:</strong>
-              <p className="text-slate-600 dark:text-slate-300">
+              <p className="text-lg">
                 {resume.cgpa || "Not found"}
               </p>
             </div>
 
             <div>
               <strong>University:</strong>
-              <p className="text-slate-600 dark:text-slate-300">
+              <p className="text-lg">
                 {resume.university || "Not found"}
               </p>
             </div>
@@ -185,11 +182,11 @@ function CandidateDetails() {
             <div>
               <strong>Experience:</strong>
               {resume.experience.length === 0 ? (
-                <p className="text-slate-600 dark:text-slate-300">
+                <p className="text-lg">
                   Not found
                 </p>
               ) : (
-                <ul className="list-disc pl-5 text-slate-600 dark:text-slate-300">
+                <ul className="list-disc pl-5">
                   {resume.experience.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
@@ -200,11 +197,11 @@ function CandidateDetails() {
             <div>
               <strong>Certifications:</strong>
               {resume.certifications.length === 0 ? (
-                <p className="text-slate-600 dark:text-slate-300">
+                <p>
                   Not found
                 </p>
               ) : (
-                <ul className="list-disc pl-5 text-slate-600 dark:text-slate-300">
+                <ul className="list-disc pl-5">
                   {resume.certifications.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
@@ -215,8 +212,8 @@ function CandidateDetails() {
         </Card>
 
         <Card title="Resume">
-          <div className="flex h-full flex-col justify-between gap-4">
-            <p className="text-slate-600 dark:text-slate-300">
+          <div className="flex flex-col gap-4 resume-content">
+            <p className="resume-filename">
               Original file: {candidate.filename}
             </p>
 
@@ -234,13 +231,13 @@ function CandidateDetails() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Matched Skills">
           {ats.matched_skills.length === 0 ? (
-            <p className="text-slate-500">None detected.</p>
+            <p className="muted">None detected.</p>
           ) : (
             <div className="flex flex-wrap gap-3">
               {ats.matched_skills.map((skill) => (
                 <span
                   key={skill}
-                  className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700"
+                  className="rounded-full bg-green-100 px-4 py-2 text-lg font-medium text-green-700"
                 >
                   {skill}
                 </span>
@@ -251,13 +248,13 @@ function CandidateDetails() {
 
         <Card title="Missing Skills">
           {ats.missing_skills.length === 0 ? (
-            <p className="text-slate-500">None — great match.</p>
+            <p className="muted">None — great match.</p>
           ) : (
             <div className="flex flex-wrap gap-3">
               {ats.missing_skills.map((skill) => (
                 <span
                   key={skill}
-                  className="rounded-full bg-red-100 px-4 py-2 text-sm font-medium text-red-700"
+                  className="rounded-full bg-red-100 px-4 py-2 text-lg font-medium text-red-700"
                 >
                   {skill}
                 </span>
@@ -270,9 +267,9 @@ function CandidateDetails() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Strengths">
           {ats.strengths.length === 0 ? (
-            <p className="text-slate-500">No strengths identified.</p>
+            <p className="muted">No strengths identified.</p>
           ) : (
-            <ul className="list-disc space-y-2 pl-6">
+            <ul className="list-disc space-y-2 pl-6 text-lg">
               {ats.strengths.map((strength) => (
                 <li key={strength}>{strength}</li>
               ))}
@@ -282,9 +279,9 @@ function CandidateDetails() {
 
         <Card title="Recommendations">
           {ats.recommendations.length === 0 ? (
-            <p className="text-slate-500">No suggestions.</p>
+            <p className="muted">No suggestions.</p>
           ) : (
-            <ul className="list-disc space-y-2 pl-6">
+            <ul className="list-disc space-y-2 pl-6 text-lg">
               {ats.recommendations.map((item) => (
                 <li key={item}>{item}</li>
               ))}

@@ -15,6 +15,10 @@ from workflow.parser import extract_text_from_bytes
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 SUPPORTED_EXTENSIONS = {".pdf", ".txt"}
+router = APIRouter(prefix="/documents", tags=["Documents"])
+
+SUPPORTED_EXTENSIONS = {".pdf", ".txt"}
+MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024  # 2MB
 
 
 @router.post("/extract-text")
@@ -28,6 +32,13 @@ async def extract_text(file: UploadFile = File(...)):
     contents = await file.read()
     if not contents:
         raise HTTPException(400, "Uploaded file is empty")
+
+    if len(contents) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            400,
+            f"File is too large ({len(contents) / (1024 * 1024):.1f}MB). "
+            f"Maximum allowed size is {MAX_FILE_SIZE_BYTES / (1024 * 1024):.0f}MB.",
+        )
 
     try:
         text = extract_text_from_bytes(contents, ext)

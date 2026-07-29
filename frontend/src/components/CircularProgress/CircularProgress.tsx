@@ -52,7 +52,7 @@ function CircularProgress({ score }: CircularProgressProps) {
           {score}
         </p>
 
-        <p className="text-sm text-slate-500">
+        <p className="text-sm muted">
           ATS
         </p>
       </div>

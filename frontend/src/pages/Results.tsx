@@ -80,7 +80,7 @@ function Results() {
       <div className="space-y-6 text-center">
         <h1 className="text-3xl font-bold">No Analysis Yet</h1>
 
-        <p className="text-slate-600 dark:text-slate-300">
+        <p className="muted">
           Connect a resume bucket and run an analysis from the home page
           first.
         </p>
@@ -124,7 +124,7 @@ function Results() {
           ATS Analysis Results
         </h1>
 
-        <p className="text-slate-600 dark:text-slate-300">
+        <p className="muted">
           Ranked candidates for bucket "{analysis.bucket}" based on ATS
           score. Interview ≥ {thresholds.interview}, Consider ≥{" "}
           {thresholds.consider}.
@@ -150,23 +150,23 @@ function Results() {
         </Card>
 
         <Card title="Consider">
-          <h2 className="text-3xl font-bold text-yellow-500">
+          <h2 className="text-3xl font-bold text-yellow-300">
             {counts.Consider}
           </h2>
         </Card>
 
         <Card title="Reject">
-          <h2 className="text-3xl font-bold text-red-600">
+          <h2 className="text-3xl font-bold text-red-500">
             {counts.Reject}
           </h2>
         </Card>
       </div>
 
       <Card title="Candidate Rankings">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-slate-900 dark:text-slate-100">
+          <div className="overflow-x-auto table-wrap">
+            <table className="min-w-full">
             <thead>
-              <tr className="border-b border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
+              <tr className="border-b table-header">
                 <th className="p-3 text-left">Rank</th>
                 <th className="p-3 text-left">Candidate</th>
                 <th className="p-3 text-left">ATS Score</th>
@@ -182,7 +182,7 @@ function Results() {
                 return (
                   <tr
                     key={candidate.filename}
-                    className="border-b border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="border-b table-row"
                   >
                     <td className="p-3">{index + 1}</td>
 
@@ -221,10 +221,10 @@ function Results() {
 
       {candidatesWithMissingInfo.length > 0 && (
         <Card title="Missing Candidate Information">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-slate-900 dark:text-slate-100">
+            <div className="overflow-x-auto table-wrap">
+              <table className="min-w-full">
               <thead>
-                <tr className="border-b border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-700">
+                <tr className="border-b table-header">
                   <th className="p-3 text-left">Candidate</th>
                   <th className="p-3 text-left">Missing Information</th>
                   <th className="p-3 text-center">Action</th>
@@ -235,11 +235,11 @@ function Results() {
                 {candidatesWithMissingInfo.map(({ candidate, missing }) => (
                   <tr
                     key={candidate.filename}
-                    className="border-b border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="border-b table-row"
                   >
                     <td className="p-3">{candidateName(candidate)}</td>
 
-                    <td className="p-3 text-red-600">
+                    <td className="p-3 font-medium text-black-600 dark:text-black-400">
                       {missing.join(", ")}
                     </td>
 
