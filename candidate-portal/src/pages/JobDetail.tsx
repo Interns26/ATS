@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
 import { Header } from "../components/Header";
-import { mockJobs } from "../data/mockJobs";
+import { fetchJob } from "../services/api";
 import { formatDate, getJobStatus } from "../lib/jobStatus";
+import type { Job } from "../types/job";
 
 const statusConfig = {
   open: { label: "Open", color: "var(--color-status-open)" },
@@ -13,14 +15,38 @@ const statusConfig = {
 export function JobDetail() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const job = mockJobs.find((j) => j.id === jobId);
 
-  if (!job) {
+  const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId) return;
+    fetchJob(jobId)
+      .then(setJob)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [jobId]);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-ink-50">
         <Header />
         <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-          <p className="text-ink-500">This job posting couldn't be found.</p>
+          <p className="text-ink-500">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <div className="min-h-screen bg-ink-50">
+        <Header />
+        <div className="mx-auto max-w-2xl px-6 py-20 text-center">
+          <p className="text-ink-500">
+            {error ?? "This job posting couldn't be found."}
+          </p>
           <button
             onClick={() => navigate("/")}
             className="mt-4 text-sm font-semibold text-primary-800 hover:underline"

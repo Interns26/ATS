@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Send, CheckCircle2 } from "lucide-react";
 import { Header } from "../components/Header";
@@ -7,7 +7,8 @@ import { BasicInfoStep } from "../components/form-steps/BasicInfoStep";
 import { QualificationsStep } from "../components/form-steps/QualificationsStep";
 import { WorkExperienceStep } from "../components/form-steps/WorkExperienceStep";
 import { ResumeStep } from "../components/form-steps/ResumeStep";
-import { mockJobs } from "../data/mockJobs";
+import { fetchJob, submitApplication } from "../services/api";
+import type { Job } from "../types/job";
 import {
   emptyBasicInfo,
   emptyQualification,
@@ -42,10 +43,12 @@ function isWorkExperienceValid(data: ApplicationFormData) {
 export function ApplicationForm() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const job = mockJobs.find((j) => j.id === jobId);
 
+  const [job, setJob] = useState<Job | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ApplicationFormData>({
     basicInfo: emptyBasicInfo,
     qualifications: [emptyQualification()],
@@ -53,22 +56,12 @@ export function ApplicationForm() {
     resumeFile: null,
   });
 
-  if (!job) {
-    return (
-      <div className="min-h-screen bg-ink-50">
-        <Header />
-        <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-          <p className="text-ink-500">This job posting couldn't be found.</p>
-          <button
-            onClick={() => navigate("/")}
-            className="mt-4 text-sm font-semibold text-primary-800 hover:underline"
-          >
-            Back to all openings
-          </button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!jobId) return;
+    fetchJob(jobId)
+      .then(setJob)
+      .catch(() => setJob(null));
+  }, [jobId]);
 
   const canGoNext = () => {
     switch (steps[currentIndex].key) {
@@ -91,11 +84,25 @@ export function ApplicationForm() {
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   };
 
-  const handleSubmit = () => {
-    // NOTE: no backend call yet — this is local-state only (Chunk 5).
-    // Chunk 8 will wire this to POST /applications.
-    console.log("Application submitted (local only):", formData);
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!formData.resumeFile || !jobId) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      await submitApplication(jobId, {
+        basicInfo: formData.basicInfo,
+        qualifications: formData.qualifications,
+        workExperience: formData.workExperience,
+        resumeFile: formData.resumeFile,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -111,7 +118,7 @@ export function ApplicationForm() {
             Application submitted
           </h1>
           <p className="mt-2 text-ink-500">
-            Thanks for applying to <strong>{job.title}</strong>. We'll be in
+            Thanks for applying to <strong>{job?.title || jobId}</strong>. We'll be in
             touch if your profile is a good fit.
           </p>
           <button
@@ -133,11 +140,11 @@ export function ApplicationForm() {
 
       <div className="mx-auto max-w-5xl px-6 py-10">
         <button
-          onClick={() => navigate(`/jobs/${job.id}`)}
+          onClick={() => navigate(jobId ? `/jobs/${jobId}` : "/")}
           className="mb-6 flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-primary-800"
         >
           <ArrowLeft size={16} />
-          {job.title}
+          {job?.title || "Back to job details"}
         </button>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-[220px_1fr]">
@@ -180,6 +187,12 @@ export function ApplicationForm() {
               />
             )}
 
+            {submitError && (
+              <p className="mt-4 text-sm text-red-600" role="alert">
+                {submitError}
+              </p>
+            )}
+
             <div className="mt-8 flex items-center justify-between border-t border-ink-100 pt-6">
               <button
                 onClick={handlePrevious}
@@ -202,11 +215,11 @@ export function ApplicationForm() {
               ) : (
                 <button
                   onClick={handleSubmit}
-                  disabled={!formData.resumeFile}
+                  disabled={!formData.resumeFile || submitting}
                   className="flex items-center gap-1.5 rounded-lg bg-accent-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Send size={16} />
-                  Apply Now
+                  {submitting ? "Submitting…" : "Apply Now"}
                 </button>
               )}
             </div>

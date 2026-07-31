@@ -1,0 +1,176 @@
+"""
+Jobs router.
+
+Public endpoints (no JWT):
+  GET  /jobs          — list all approved jobs
+  GET  /jobs/{job_id} — single approved job
+
+Protected endpoints (JWT required — for recruiter portal):
+  POST   /jobs                    — create a new job (unapproved)
+  PATCH  /jobs/{job_id}/approve   — approve job + create its MinIO bucket
+  DELETE /jobs/{job_id}           — delete a job
+"""
+import json
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from typing import List, Optional
+
+from app.dependencies import get_current_user
+from app.services.database import get_connection
+from app.services.storage import ensure_bucket_exists
+
+router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+
+# ── Request / Response models ────────────────────────────────────────────────
+
+class JobCreate(BaseModel):
+    title: str
+    location: Optional[str] = None
+    employment_type: Optional[str] = None   # Permanent | Contract | Internship | Part-time
+    department: Optional[str] = None
+    description: Optional[str] = None
+    responsibilities: List[str] = []
+    requirements: List[str] = []
+    opening_date: Optional[str] = None      # ISO date string, e.g. "2026-08-01"
+    closing_date: Optional[str] = None
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _row_to_dict(row) -> dict:
+    """Convert a RealDictRow to a plain dict with JSON fields decoded."""
+    d = dict(row)
+    # JSONB columns come back as dicts/lists already via psycopg2+RealDictCursor
+    return d
+
+
+def _bucket_name_for_job(job_id: str) -> str:
+    """
+    MinIO bucket names must be 3-63 chars, lowercase, letters/numbers/hyphens only.
+    We use the first 8 hex chars of the UUID for uniqueness.
+    """
+    short = job_id.replace("-", "")[:12]
+    return f"job-{short}"
+
+
+# ── Public routes ────────────────────────────────────────────────────────────
+
+@router.get("/")
+def list_approved_jobs():
+    """Return all approved jobs — used by the candidate portal."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, location, employment_type, department,
+                       description, responsibilities, requirements,
+                       opening_date, closing_date, minio_bucket, created_at
+                FROM jobs
+                WHERE is_approved = TRUE
+                ORDER BY created_at DESC
+                """
+            )
+            rows = cur.fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+@router.get("/{job_id}")
+def get_job(job_id: str):
+    """Return a single approved job — used by candidate portal job detail page."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, location, employment_type, department,
+                       description, responsibilities, requirements,
+                       opening_date, closing_date, minio_bucket, created_at
+                FROM jobs
+                WHERE id = %s AND is_approved = TRUE
+                """,
+                (job_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(404, f"Job '{job_id}' not found or not yet approved.")
+
+    return _row_to_dict(row)
+
+
+# ── Protected routes (recruiter portal) ─────────────────────────────────────
+
+@router.post("/", dependencies=[Depends(get_current_user)], status_code=201)
+def create_job(payload: JobCreate):
+    """Create a new job posting (unapproved by default)."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO jobs
+                  (title, location, employment_type, department, description,
+                   responsibilities, requirements, opening_date, closing_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    payload.title,
+                    payload.location,
+                    payload.employment_type,
+                    payload.department,
+                    payload.description,
+                    json.dumps(payload.responsibilities),
+                    json.dumps(payload.requirements),
+                    payload.opening_date or None,
+                    payload.closing_date or None,
+                ),
+            )
+            job_id = str(cur.fetchone()["id"])
+
+    return {"job_id": job_id, "is_approved": False}
+
+
+@router.patch("/{job_id}/approve", dependencies=[Depends(get_current_user)])
+def approve_job(job_id: str):
+    """
+    Approve a job and create its dedicated MinIO bucket.
+    The bucket name is stored on the job row so applications can find it.
+    """
+    bucket = _bucket_name_for_job(job_id)
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, is_approved FROM jobs WHERE id = %s",
+                (job_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(404, f"Job '{job_id}' not found.")
+    if row["is_approved"]:
+        return {"job_id": job_id, "minio_bucket": row["minio_bucket"], "message": "Already approved."}
+
+    # Create the MinIO bucket for this job
+    ensure_bucket_exists(bucket)
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE jobs SET is_approved = TRUE, minio_bucket = %s WHERE id = %s",
+                (bucket, job_id),
+            )
+
+    return {"job_id": job_id, "minio_bucket": bucket, "message": "Job approved."}
+
+
+@router.delete("/{job_id}", dependencies=[Depends(get_current_user)], status_code=204)
+def delete_job(job_id: str):
+    """Delete a job posting."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
+            if cur.rowcount == 0:
+                raise HTTPException(404, f"Job '{job_id}' not found.")

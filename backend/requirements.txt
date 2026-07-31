@@ -5,6 +5,7 @@ minio
 python-multipart
 python-jose[cryptography]
 bcrypt
+psycopg2-binary
 
 
 annotated-types==0.7.0

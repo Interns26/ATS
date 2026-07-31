@@ -1,24 +1,35 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "../components/Header";
 import { JobCard } from "../components/JobCard";
 import { SearchBar } from "../components/SearchBar";
-import { mockJobs } from "../data/mockJobs";
+import { fetchApprovedJobs } from "../services/api";
+import type { Job } from "../types/job";
 
 export function JobListings() {
   const [query, setQuery] = useState("");
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchApprovedJobs()
+      .then(setJobs)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredJobs = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return mockJobs;
-    return mockJobs.filter(
+    if (!q) return jobs;
+    return jobs.filter(
       (job) =>
         job.title.toLowerCase().includes(q) ||
         job.department.toLowerCase().includes(q) ||
         job.location.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, jobs]);
 
   return (
     <div className="min-h-screen bg-ink-50">
@@ -54,20 +65,37 @@ export function JobListings() {
               Current openings
             </h2>
             <p className="text-sm text-ink-500">
-              {filteredJobs.length} position{filteredJobs.length !== 1 && "s"}{" "}
-              available
+              {loading
+                ? "Loading…"
+                : `${filteredJobs.length} position${filteredJobs.length !== 1 ? "s" : ""} available`}
             </p>
           </div>
           <SearchBar value={query} onChange={setQuery} />
         </div>
 
-        {filteredJobs.length === 0 ? (
+        {loading && (
+          <div className="rounded-xl border border-dashed border-ink-200 bg-white py-16 text-center">
+            <p className="text-ink-500">Loading job listings…</p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="rounded-xl border border-red-200 bg-red-50 py-16 text-center">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && filteredJobs.length === 0 && (
           <div className="rounded-xl border border-dashed border-ink-200 bg-white py-16 text-center">
             <p className="text-ink-500">
-              No roles match "{query}" right now — try a different search.
+              {query
+                ? `No roles match "${query}" right now — try a different search.`
+                : "No open positions at the moment. Check back soon!"}
             </p>
           </div>
-        ) : (
+        )}
+
+        {!loading && !error && filteredJobs.length > 0 && (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredJobs.map((job) => (
               <JobCard
