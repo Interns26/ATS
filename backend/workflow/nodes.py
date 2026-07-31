@@ -17,13 +17,13 @@ resume_parser = PydanticOutputParser(pydantic_object=ResumeInfo)
 ats_parser = PydanticOutputParser(pydantic_object=ATSResult)
 
 #llm = ChatGoogleGenerativeAI(
-#    model="gemini-2.5-flash",
+#   model="gemini-2.5-flash",
 #     temperature=0
 # )
 
 llm = ChatGroq(
    model="llama-3.3-70b-versatile",
-  temperature=0
+temperature=0
 )
 
 
