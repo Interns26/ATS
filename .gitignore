@@ -1,5 +1,17 @@
+# Environment files
 .env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# Python
 __pycache__/
 *.pyc
 venv/
 .venv/
+
+# Node / Dependencies
+node_modules/
+dist/
+.DS_Store
