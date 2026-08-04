@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Uworx UK. All rights reserved.
+ * Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.
  */
 
 import { useEffect, useState } from "react";
@@ -14,7 +14,6 @@ type Job = {
   description: string;
   status: JobStatus;
   approvedBy: string;
-  budget: string;
   creator: string;
 };
 
@@ -84,15 +83,9 @@ function DetailsModal({ job, onClose }: { job: Job; onClose: () => void }) {
             <p className="text-slate-400 dark:text-slate-500 mb-1">Description</p>
             <p className="text-slate-700 dark:text-slate-300">{job.description || "-"}</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 mb-1">Budget</p>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">{job.budget}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 mb-1">Status</p>
-              <StatusBadge status={job.status} />
-            </div>
+          <div>
+            <p className="text-slate-400 dark:text-slate-500 mb-1">Status</p>
+            <StatusBadge status={job.status} />
           </div>
           <div>
             <p className="text-slate-400 dark:text-slate-500 mb-1">Approved By</p>
@@ -110,7 +103,7 @@ export default function Recruiter() {
   const [filter, setFilter] = useState<"All" | JobStatus>("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newJob, setNewJob] = useState({ name: "", tl: "", description: "", budget: "" });
+  const [newJob, setNewJob] = useState({ name: "", tl: "", description: "" });
   const [detailsJob, setDetailsJob] = useState<Job | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -125,7 +118,6 @@ export default function Recruiter() {
         description: item.description || "",
         status: item.is_approved ? "Approved" : "Not Approved",
         approvedBy: item.is_approved ? "HR Admin" : "-",
-        budget: "150000",
         creator: item.department || "General",
       }));
       setJobs(mapped);
@@ -142,11 +134,6 @@ export default function Recruiter() {
 
   const filteredJobs = jobs.filter((j) => filter === "All" || j.status === filter);
 
-  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
-    setNewJob({ ...newJob, budget: digitsOnly });
-  };
-
   const handleCreateJob = async () => {
     if (!newJob.name.trim() || !newJob.tl.trim()) {
       alert("Please fill in Job Name and Team Lead.");
@@ -160,7 +147,7 @@ export default function Recruiter() {
         description: newJob.description,
       });
       alert("Job created successfully! It is now pending HR approval.");
-      setNewJob({ name: "", tl: "", description: "", budget: "" });
+      setNewJob({ name: "", tl: "", description: "" });
       setShowCreateForm(false);
       fetchJobs();
     } catch (err) {
@@ -245,17 +232,10 @@ export default function Recruiter() {
               onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
               className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm col-span-2 bg-white dark:bg-slate-800 dark:text-slate-100"
             />
-            <input
-              placeholder="Budget"
-              inputMode="numeric"
-              value={newJob.budget}
-              onChange={handleBudgetChange}
-              className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
-            />
             <button
               onClick={handleCreateJob}
               disabled={actionLoading}
-              className="bg-blue-600 text-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-blue-700 disabled:opacity-50"
+              className="bg-blue-600 text-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-blue-700 disabled:opacity-50 col-span-2"
             >
               {actionLoading ? "Adding..." : "Add Job"}
             </button>

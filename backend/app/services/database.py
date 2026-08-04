@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Uworx UK. All rights reserved.
+# Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.
 
 """
 Postgres database service.
@@ -101,6 +101,17 @@ CREATE TABLE IF NOT EXISTS work_experience (
     ending_salary       TEXT,
     job_description     TEXT
 );
+
+CREATE TABLE IF NOT EXISTS resume_analysis (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email           TEXT NOT NULL,
+    job_id          TEXT NOT NULL,
+    filename        TEXT NOT NULL,
+    parsed_resume   JSONB NOT NULL,
+    ats_result      JSONB NOT NULL,
+    created_at      TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(email, job_id)
+);
 """
 
 
@@ -110,4 +121,5 @@ def init_db() -> None:
         with conn.cursor() as cur:
             cur.execute(_CREATE_TABLES_SQL)
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS password_hash TEXT;")
+
 
