@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Coworx UK. All rights reserved.
+# Copyright (c) 2026 Uworx UK. All rights reserved.
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware

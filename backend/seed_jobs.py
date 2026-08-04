@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Coworx UK. All rights reserved.
+# Copyright (c) 2026 Uworx UK. All rights reserved.
 
 """
 Seed script to create dummy approved jobs in PostgreSQL and provision their MinIO buckets.

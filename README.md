@@ -1,6 +1,6 @@
 # ATS Resume Analyzer & Talent Acquisition System
 
-**Coworx UK** • AI-Powered Applicant Tracking & Candidate Portal System
+**Uworx UK** • AI-Powered Applicant Tracking & Candidate Portal System
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -9,13 +9,13 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![MinIO](https://img.shields.io/badge/MinIO-Object_Storage-C42E35?style=flat&logo=minio&logoColor=white)](https://min.io/)
 
-> **Copyright (c) 2026 Coworx UK. All rights reserved.**
+> **Copyright (c) 2026 Uworx UK. All rights reserved.**
 
 ---
 
 ## Executive Overview
 
-The **ATS Resume Analyzer & Talent Acquisition System** is an enterprise-grade recruiting platform designed for **Coworx UK**. It features a modern Candidate Portal for candidate job applications, a comprehensive Recruiter Portal for job postings, HR approvals, and AI candidate scoring, and a high-performance FastAPI backend backed by PostgreSQL, MinIO Object Storage, and LangGraph AI pipelines.
+The **ATS Resume Analyzer & Talent Acquisition System** is an enterprise-grade recruiting platform designed for **Uworx UK**. It features a modern Candidate Portal for candidate job applications, a comprehensive Recruiter Portal for job postings, HR approvals, and AI candidate scoring, and a high-performance FastAPI backend backed by PostgreSQL, MinIO Object Storage, and LangGraph AI pipelines.
 
 ---
 
@@ -282,6 +282,6 @@ Recruiter Portal will open at `http://localhost:5174`.
 
 ## License & Copyright
 
-**Copyright (c) 2026 Coworx UK. All rights reserved.**
+**Copyright (c) 2026 Uworx UK. All rights reserved.**
 
-All source code, design systems, and documentation contained in this repository are proprietary to **Coworx UK**. Unauthorized copying, modification, distribution, or public display of this software is strictly prohibited.
+All source code, design systems, and documentation contained in this repository are proprietary to **Uworx UK**. Unauthorized copying, modification, distribution, or public display of this software is strictly prohibited.

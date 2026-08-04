@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Coworx UK. All rights reserved.
+# Copyright (c) 2026 Uworx UK. All rights reserved.
 
 """
 Run this to generate a value for ADMIN_PASSWORD_HASH in backend/.env

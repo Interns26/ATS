@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Coworx UK. All rights reserved.
+# Copyright (c) 2026 Uworx UK. All rights reserved.
 
 # Standalone demo script — run from the backend/ directory with:
 #   python -m workflow.app

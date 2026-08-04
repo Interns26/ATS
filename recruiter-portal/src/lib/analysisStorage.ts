@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Coworx UK. All rights reserved.
+ * Copyright (c) 2026 Uworx UK. All rights reserved.
  */
 
 export const ANALYSIS_STORAGE_KEY = "ats:last-analysis";

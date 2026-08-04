@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Coworx UK. All rights reserved.
+# Copyright (c) 2026 Uworx UK. All rights reserved.
 
 from langgraph.graph import StateGraph
 from langgraph.graph import END

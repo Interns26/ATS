@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Coworx UK. All rights reserved.
+ * Copyright (c) 2026 Uworx UK. All rights reserved.
  */
 
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
