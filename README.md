@@ -1,430 +1,287 @@
-# ATS Resume Analyzer
+# ATS Resume Analyzer & Talent Acquisition System
 
-An AI-powered Applicant Tracking System (ATS) that allows recruiters to retrieve resumes from MinIO object storage, upload a job description, analyze candidate compatibility, and rank applicants based on an ATS score.
+**Coworx UK** • AI-Powered Applicant Tracking & Candidate Portal System
 
-> **Current Status**
->
-> - ✅ React frontend completed
-> - ✅ FastAPI backend for MinIO integration completed
-> - ✅ MinIO bucket selection implemented
-> - ✅ Resume parsing
-> - ✅ LangGraph workflow 
-> - ✅ ATS scoring pipeline 
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![MinIO](https://img.shields.io/badge/MinIO-Object_Storage-C42E35?style=flat&logo=minio&logoColor=white)](https://min.io/)
 
----
-
-# Tech Stack
-
-## Frontend
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-
-## Backend
-
-- FastAPI
-- Python
-- MinIO Python SDK
-
-## Storage
-
-- MinIO Object Storage
-
-## AI (Upcoming)
-
-- LangGraph
-- Groq LLM
+> **Copyright (c) 2026 Coworx UK. All rights reserved.**
 
 ---
 
-# Project Structure
+## Executive Overview
+
+The **ATS Resume Analyzer & Talent Acquisition System** is an enterprise-grade recruiting platform designed for **Coworx UK**. It features a modern Candidate Portal for candidate job applications, a comprehensive Recruiter Portal for job postings, HR approvals, and AI candidate scoring, and a high-performance FastAPI backend backed by PostgreSQL, MinIO Object Storage, and LangGraph AI pipelines.
+
+---
+
+## Key Features
+
+### 🏢 Recruiter Portal (`recruiter-portal/`)
+- **ATS Resume Scoring & AI Recommendation**: Scores candidate resumes against job descriptions using LangGraph AI pipelines and customizable Interview/Consider threshold bounds.
+- **Real Candidate & Resume Filter**: Dynamic constraints filter by **CGPA** (`<=`, `>=`, `=`) and **University** (`UET Lahore`, `FAST NUCES`, `COMSATS`, `Other`, `All`).
+- **Recruiter Job Posting**: Post new job openings (`/recruiter`) with title, department, location, employment type, and description.
+- **HR Approval Queue & Storage Provisioning**: HR review queue (`/approval`) for approving job postings, which automatically provisions dedicated MinIO storage buckets (`job-xxxx`) for candidate application uploads.
+- **Automatic Storage Lifecycle**: Deleting a job posting automatically purges its dedicated MinIO storage bucket and all stored files.
+
+### 👤 Candidate Portal (`candidate-portal/`)
+- **Job Openings Showcase**: Browse live approved job positions with real-time search.
+- **Multi-Step Application Submission**: Interactive application form capturing basic contact info, qualifications, work experience, and resume upload.
+- **Candidate Authentication**: Email/Password candidate registration and login, with session persistence (`ats:token`).
+- **Google OAuth 2.0 Sign-In**: One-click registration and sign-in using Google Identity Services (GIS SDK).
+- **Auto Pre-Fill**: Logged-in candidates have their contact information auto-populated into application forms.
+
+### ⚡ FastAPI Backend (`backend/`)
+- **JWT Role-Based Auth**: Secure JWT authentication supporting `admin` and `candidate` roles.
+- **Google OAuth Token Verification**: Instant verification of Google ID token claims with multi-layer fallback.
+- **PostgreSQL Database Schema**: Relational storage for candidates, job postings, applications, qualifications, work experience, and user accounts.
+- **MinIO Object Storage Integration**: Bucket management and streaming file downloads for candidate resumes.
+- **LangGraph AI Resume Parsing**: Intelligent text extraction, resume parsing, and compatibility scoring.
+
+---
+
+## Tech Stack
+
+| Domain | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS, Tailwind CSS, Lucide Icons |
+| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2 |
+| **Authentication** | JWT (`python-jose`), Bcrypt (`passlib`), Google Identity Services (`google-auth`) |
+| **Database & Storage** | PostgreSQL (`psycopg2`), MinIO Python SDK |
+| **AI Workflow** | LangGraph, Groq LLM API, PyMuPDF / pdfplumber |
+| **DevOps & Containers** | Docker, Docker Compose |
+
+---
+
+## Architecture & Project Structure
 
 ```text
 ATS/
-│
-├── frontend/
-│   ├── src/
-│   ├── package.json
-│   └── ...
-│
 ├── backend/
 │   ├── app/
 │   │   ├── routers/
+│   │   │   ├── analyze.py        # LangGraph AI scoring endpoint
+│   │   │   ├── applications.py   # Application submission endpoint
+│   │   │   ├── auth.py           # JWT, Candidate & Google OAuth endpoints
+│   │   │   ├── jobs.py           # Public, Recruiter & HR Approval job endpoints
+│   │   │   ├── resumes.py        # MinIO resume retrieval & downloads
+│   │   │   └── storage.py        # MinIO bucket management
 │   │   ├── services/
-│   │   └── main.py
-│   │
-│   ├── requirements.txt
+│   │   │   ├── auth.py           # Password hashing & JWT token generation
+│   │   │   ├── database.py       # PostgreSQL connection pool & schema init
+│   │   │   └── storage.py        # MinIO SDK client operations
+│   │   ├── dependencies.py       # Auth dependencies (get_current_user)
+│   │   └── main.py               # FastAPI entry point & CORS configuration
+│   ├── workflow/                 # LangGraph AI resume parsing nodes & graph
 │   ├── .env.example
-│   └── ...
+│   └── requirements.txt
 │
+├── candidate-portal/
+│   ├── src/
+│   │   ├── components/           # Header, GoogleAuthButton, LoginModal, RegisterModal
+│   │   ├── pages/                # JobListings, JobDetail, ApplicationForm, LoginPage
+│   │   ├── services/             # API services for auth & job applications
+│   │   └── lib/                  # JWT token storage helpers
+│   ├── .env.example
+│   └── package.json
+│
+├── recruiter-portal/
+│   ├── src/
+│   │   ├── components/           # Navbar, Button, Card, Select, Input, LoadingOverlay
+│   │   ├── pages/                # Home (ATS Analyzer), Recruiter, Approval, CandidateDetails
+│   │   └── services/             # API services for jobs, buckets & resume analysis
+│   └── package.json
+│
+├── docker-compose.yml
 └── README.md
 ```
 
 ---
 
-# Features
+## Prerequisites
 
-## Current
+Before starting, ensure you have installed:
 
-- Modern React dashboard
-- Dark mode
-- MinIO bucket selection
-- Resume listing from selected bucket
-- Job description upload
-- Candidate dashboard
-- Candidate details page
-
-## Planned
-
-- Resume parser
-- Job description parser
-- LangGraph workflow
-- ATS score generation
-- Resume recommendations
-- Resume download
-- Candidate ranking
-- AI explanations
+- **Git**
+- **Python 3.11+**
+- **Node.js (v18+)** & `npm`
+- **Docker Desktop** (for PostgreSQL and MinIO)
 
 ---
 
-# Prerequisites
+## Environment Setup
 
-Install the following:
+### 1. Backend Environment (`backend/.env`)
 
-- Git
-- Python 3.11+
-- Node.js (LTS)
-- npm
-- Docker Desktop
-
----
-
-# Clone Repository
-
-```bash
-git clone https://github.com/Interns26/ATS.git
-
-cd ATS
-```
-
----
-
-# Backend Setup
-
-## Create Virtual Environment
-
-```bash
-cd backend
-
-python -m venv .venv
-```
-
-Activate it
-
-### Windows (Git Bash)
-
-```bash
-source .venv/Scripts/activate
-```
-
-### Windows (PowerShell)
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
----
-
-## Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Configure Environment Variables
-
-Create a file named
-
-```text
-backend/.env
-```
-
-Example
+Create `backend/.env`:
 
 ```env
+# Database Configuration
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=ats_db
+POSTGRES_USER=ats_user
+POSTGRES_PASSWORD=ats_password
+
+# MinIO Object Storage
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=admin
 MINIO_SECRET_KEY=password123
 MINIO_SECURE=false
+MINIO_BUCKET=resumes
+
+# Security & JWT
+JWT_SECRET_KEY=your_random_super_secret_jwt_key_here
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW
+
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=820758112006-iv6pc1p0nlvga2385heq970rjjg9g52g.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
+
+### 2. Candidate Portal Environment (`candidate-portal/.env`)
+
+Create `candidate-portal/.env`:
+
+```env
+VITE_GOOGLE_CLIENT_ID=820758112006-iv6pc1p0nlvga2385heq970rjjg9g52g.apps.googleusercontent.com
 ```
 
 ---
 
-# MinIO Setup
+## Google OAuth 2.0 Credentials Setup
 
-Start MinIO using Docker
+To enable Google Sign-In on the Candidate Portal:
+
+1. Go to **[Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials)**.
+2. Select your OAuth 2.0 Client ID.
+3. Under **Authorized JavaScript origins**, add:
+   - `http://localhost:5173`
+   - `http://localhost:5174`
+   - `http://localhost`
+4. Under **Authorized redirect URIs**, add:
+   - `http://localhost:5173`
+   - `http://localhost:5174`
+5. Save changes (allow 1-3 minutes for Google CDN propagation).
+
+---
+
+## Installation & Quickstart
+
+### Step 1: Start PostgreSQL and MinIO Containers
 
 ```bash
-docker run -d \
---name minio \
--p 9000:9000 \
--p 9001:9001 \
--e MINIO_ROOT_USER=admin \
--e MINIO_ROOT_PASSWORD=password123 \
-minio/minio server /data --console-address ":9001"
+docker-compose up -d
 ```
 
-Verify it is running
-
-```bash
-docker ps
-```
+Verify containers are running:
+- **MinIO Console**: `http://localhost:9001` (Credentials: `admin` / `password123`)
+- **PostgreSQL**: `localhost:5432`
 
 ---
 
-## Open MinIO Console
-
-```
-http://localhost:9001
-```
-
-Login using
-
-```
-Username: admin
-
-Password: password123
-```
-
----
-
-## Create Buckets
-
-Create one or more buckets, for example
-
-```
-software-engineer
-
-frontend
-
-backend
-
-internships
-```
-
-Upload resume PDF files into the desired bucket.
-
----
-
-# Start Backend
+### Step 2: Set Up Backend
 
 ```bash
 cd backend
 
-python -m uvicorn app.main:app --reload
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Linux/macOS:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start FastAPI dev server
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Backend
-
-```
-http://localhost:8000
-```
-
-Swagger API
-
-```
-http://localhost:8000/docs
-```
+FastAPI server endpoints:
+- **API Server**: `http://localhost:8000`
+- **Swagger Documentation**: `http://localhost:8000/docs`
 
 ---
 
-# Frontend Setup
+### Step 3: Set Up Candidate Portal
 
-Install dependencies
+In a new terminal:
 
 ```bash
-cd frontend
-
+cd candidate-portal
 npm install
-```
-
-Run development server
-
-```bash
 npm run dev
 ```
 
-Frontend
-
-```
-http://localhost:5173
-```
+Candidate Portal will open at `http://localhost:5173`.
 
 ---
 
-# Current Workflow
+### Step 4: Set Up Recruiter Portal
 
-```
-Recruiter
-
-      │
-
-      ▼
-
-Select MinIO Bucket
-
-      │
-
-      ▼
-
-Retrieve Resume Files
-
-      │
-
-      ▼
-
-Upload Job Description
-
-      │
-
-      ▼
-
-(Upcoming)
-
-Resume Parser
-
-      │
-
-      ▼
-
-LangGraph
-
-      │
-
-      ▼
-
-ATS Score
-
-      │
-
-      ▼
-
-Candidate Ranking
-
-      │
-
-      ▼
-
-Results Dashboard
-```
-
----
-
-# API Endpoints
-
-## Health Check
-
-```
-GET /health
-```
-
----
-
-## List Buckets
-
-```
-GET /buckets
-```
-
-Returns all available MinIO buckets.
-
----
-
-## List Resumes
-
-```
-GET /resumes/{bucket_name}
-```
-
-Returns every resume inside the selected bucket.
-
----
-
-# Development Workflow
-
-Create a feature branch
+In a new terminal:
 
 ```bash
-git checkout -b feature/<feature-name>
+cd recruiter-portal
+npm install
+npm run dev
 ```
 
-Commit changes
-
-```bash
-git add .
-
-git commit -m "Describe your changes"
-```
-
-Push branch
-
-```bash
-git push origin feature/<feature-name>
-```
-
-Open a Pull Request into `develop`.
+Recruiter Portal will open at `http://localhost:5174`.
 
 ---
 
-# Team Responsibilities
+## API Documentation Overview
 
-## Frontend
+### 🔐 Auth Endpoints (`/auth`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/auth/login` | Recruiter/Admin Login |
+| `POST` | `/auth/candidate/register` | Candidate Email/Password Registration |
+| `POST` | `/auth/candidate/login` | Candidate Email/Password Login |
+| `POST` | `/auth/google` | Candidate Google OAuth 2.0 Sign-In |
+| `GET` | `/auth/me` | Fetch Current Authenticated User Profile |
 
-- Dashboard
-- Candidate Pages
-- Results UI
-- API Integration
+### 💼 Jobs Endpoints (`/jobs`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/jobs/` | List All Approved Jobs (Public) |
+| `GET` | `/jobs/pending` | List Unapproved Jobs (HR Queue) |
+| `GET` | `/jobs/all` | List All Jobs (Recruiter Portal) |
+| `GET` | `/jobs/{job_id}` | Fetch Single Approved Job Details |
+| `POST` | `/jobs/` | Create New Job & Provision MinIO Bucket |
+| `PATCH` | `/jobs/{job_id}/approve` | HR Approve Job & Activate Bucket |
+| `DELETE` | `/jobs/{job_id}` | Delete Job & Purge MinIO Bucket |
 
----
-
-## Backend
-
-- FastAPI
-- MinIO Integration
-- Resume Retrieval
-- API Development
-
----
-
-## AI
-
-- Resume Parsing
-- Job Description Parsing
-- LangGraph Workflow
-- ATS Scoring
-- Candidate Recommendation
-
----
-
-# Future Improvements
-
-- Authentication
-- Resume Download
-- Batch Resume Processing
-- PostgreSQL Database
-- Candidate Search
-- Interview Recommendation
-- Export Reports
-- Docker Compose Deployment
+### 📄 Applications & Resumes (`/applications`, `/resumes`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/applications/{job_id}` | Submit Candidate Application & Upload Resume |
+| `GET` | `/resumes/{bucket}` | List Resumes Enriched with Candidate Contact & Qualifications |
+| `GET` | `/resumes/{bucket}/download/{key}` | Stream Resume File Download |
+| `POST` | `/analyze/{bucket}` | Run LangGraph AI Compatibility Analysis |
 
 ---
 
-# Authors
+## Default Credentials
 
-Interns 2026
+- **Recruiter / Admin Login**:
+  - **Username**: `admin`
+  - **Password**: `admin`
 
-Developed as part of the AI Internship Project.
+---
+
+## License & Copyright
+
+**Copyright (c) 2026 Coworx UK. All rights reserved.**
+
+All source code, design systems, and documentation contained in this repository are proprietary to **Coworx UK**. Unauthorized copying, modification, distribution, or public display of this software is strictly prohibited.
