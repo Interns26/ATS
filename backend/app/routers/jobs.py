@@ -1,8 +1,12 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 """
 Jobs router.
 
 Public endpoints (no JWT):
   GET  /jobs          — list all approved jobs
+  GET  /jobs/pending  — list all unapproved jobs (for approval page)
+  GET  /jobs/all      — list all jobs (for recruiter portal)
   GET  /jobs/{job_id} — single approved job
 
 Protected endpoints (JWT required — for recruiter portal):
@@ -19,9 +23,10 @@ from typing import List, Optional
 
 from app.dependencies import get_current_user
 from app.services.database import get_connection
-from app.services.storage import ensure_bucket_exists
+from app.services.storage import ensure_bucket_exists, delete_bucket
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
 
 
 # ── Request / Response models ────────────────────────────────────────────────
@@ -41,22 +46,24 @@ class JobCreate(BaseModel):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _row_to_dict(row) -> dict:
-    """Convert a RealDictRow to a plain dict with JSON fields decoded."""
+    """Convert a RealDictRow to a plain dict with JSON fields decoded and ISO formatted dates."""
     d = dict(row)
-    # JSONB columns come back as dicts/lists already via psycopg2+RealDictCursor
+    for k, v in d.items():
+        if hasattr(v, "isoformat"):
+            d[k] = v.isoformat()
     return d
 
 
 def _bucket_name_for_job(job_id: str) -> str:
     """
     MinIO bucket names must be 3-63 chars, lowercase, letters/numbers/hyphens only.
-    We use the first 8 hex chars of the UUID for uniqueness.
+    Use `job-<first-12-chars-of-uuid-without-hyphens>`.
     """
     short = job_id.replace("-", "")[:12]
     return f"job-{short}"
 
 
-# ── Public routes ────────────────────────────────────────────────────────────
+# ── Public & Listing routes (must be defined BEFORE /{job_id}) ───────────────
 
 @router.get("/")
 def list_approved_jobs():
@@ -70,6 +77,43 @@ def list_approved_jobs():
                        opening_date, closing_date, minio_bucket, created_at
                 FROM jobs
                 WHERE is_approved = TRUE
+                ORDER BY created_at DESC
+                """
+            )
+            rows = cur.fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+@router.get("/pending")
+def list_pending_jobs():
+    """Return all unapproved jobs — used by recruiter portal approval page."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, location, employment_type, department,
+                       description, responsibilities, requirements,
+                       opening_date, closing_date, created_at
+                FROM jobs
+                WHERE is_approved = FALSE
+                ORDER BY created_at DESC
+                """
+            )
+            rows = cur.fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+@router.get("/all")
+def list_all_jobs():
+    """Return all jobs regardless of status — used by recruiter portal."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, title, location, employment_type, department,
+                       description, responsibilities, requirements,
+                       opening_date, closing_date, is_approved, minio_bucket, created_at
+                FROM jobs
                 ORDER BY created_at DESC
                 """
             )
@@ -104,32 +148,38 @@ def get_job(job_id: str):
 
 @router.post("/", dependencies=[Depends(get_current_user)], status_code=201)
 def create_job(payload: JobCreate):
-    """Create a new job posting (unapproved by default)."""
+    """Create a new job posting, provision its dedicated MinIO bucket immediately, and set it as approved so it displays on Candidate Portal and Recruiter Portal."""
+    job_id = str(uuid.uuid4())
+    bucket = _bucket_name_for_job(job_id)
+    ensure_bucket_exists(bucket)
+
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO jobs
-                  (title, location, employment_type, department, description,
-                   responsibilities, requirements, opening_date, closing_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
+                  (id, title, location, employment_type, department, description,
+                   responsibilities, requirements, opening_date, closing_date,
+                   is_approved, minio_bucket)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
+                    job_id,
                     payload.title,
-                    payload.location,
-                    payload.employment_type,
-                    payload.department,
-                    payload.description,
+                    payload.location or "Remote",
+                    payload.employment_type or "Full-time",
+                    payload.department or "General",
+                    payload.description or "",
                     json.dumps(payload.responsibilities),
                     json.dumps(payload.requirements),
                     payload.opening_date or None,
                     payload.closing_date or None,
+                    True,   # Approved immediately so candidate portal displays it
+                    bucket, # MinIO storage bucket created immediately!
                 ),
             )
-            job_id = str(cur.fetchone()["id"])
 
-    return {"job_id": job_id, "is_approved": False}
+    return {"job_id": job_id, "is_approved": True, "minio_bucket": bucket}
 
 
 @router.patch("/{job_id}/approve", dependencies=[Depends(get_current_user)])
@@ -168,9 +218,22 @@ def approve_job(job_id: str):
 
 @router.delete("/{job_id}", dependencies=[Depends(get_current_user)], status_code=204)
 def delete_job(job_id: str):
-    """Delete a job posting."""
+    """Delete a job posting and remove its MinIO storage bucket."""
     with get_connection() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT minio_bucket FROM jobs WHERE id = %s", (job_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(404, f"Job '{job_id}' not found.")
+
+            bucket = row.get("minio_bucket")
+            if bucket:
+                try:
+                    delete_bucket(bucket)
+                except Exception as exc:
+                    print(f"[JobsRouter] Warning: Failed to delete MinIO bucket {bucket}: {exc}")
+
             cur.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
+
             if cur.rowcount == 0:
                 raise HTTPException(404, f"Job '{job_id}' not found.")

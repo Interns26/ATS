@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 export interface BasicInfo {
   email: string;
   firstName: string;

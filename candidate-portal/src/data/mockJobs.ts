@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
+/**
  * MOCK DATA — used until the real `GET /jobs` API is wired up
  * (pending decision on shared DB vs. admin-portal API).
  * Swap `mockJobs` for a real fetch call in src/lib/api.ts once ready —

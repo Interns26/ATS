@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 

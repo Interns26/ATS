@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 from .models import ResumeInfo
 from .models import ATSResult
 from langchain_core.output_parsers import PydanticOutputParser

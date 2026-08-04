@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "../components/Header";

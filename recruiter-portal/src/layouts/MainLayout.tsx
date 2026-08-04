@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { Outlet } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
 

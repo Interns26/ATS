@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { Search } from "lucide-react";
 
 interface SearchBarProps {

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 """
 Postgres database service.
 
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     state_province  TEXT,
     mobile_number   TEXT,
     how_heard       TEXT,
+    password_hash   TEXT,
     created_at      TIMESTAMPTZ DEFAULT now()
 );
 
@@ -106,3 +109,5 @@ def init_db() -> None:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(_CREATE_TABLES_SQL)
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS password_hash TEXT;")
+

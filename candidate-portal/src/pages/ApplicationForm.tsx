@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Send, CheckCircle2 } from "lucide-react";
@@ -7,7 +11,9 @@ import { BasicInfoStep } from "../components/form-steps/BasicInfoStep";
 import { QualificationsStep } from "../components/form-steps/QualificationsStep";
 import { WorkExperienceStep } from "../components/form-steps/WorkExperienceStep";
 import { ResumeStep } from "../components/form-steps/ResumeStep";
-import { fetchJob, submitApplication } from "../services/api";
+import { fetchJob, submitApplication, fetchCurrentUser } from "../services/api";
+import { getToken } from "../lib/auth";
+
 import type { Job } from "../types/job";
 import {
   emptyBasicInfo,
@@ -62,6 +68,32 @@ export function ApplicationForm() {
       .then(setJob)
       .catch(() => setJob(null));
   }, [jobId]);
+
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      fetchCurrentUser(token)
+        .then((userData) => {
+          if (userData && userData.role === "candidate") {
+            setFormData((prev) => ({
+              ...prev,
+              basicInfo: {
+                ...prev.basicInfo,
+                email: userData.email || prev.basicInfo.email,
+                firstName: userData.first_name || prev.basicInfo.firstName,
+                lastName: userData.last_name || prev.basicInfo.lastName,
+                city: userData.city || prev.basicInfo.city,
+                stateProvince: userData.state_province || prev.basicInfo.stateProvince,
+                mobileNumber: userData.mobile_number || prev.basicInfo.mobileNumber,
+              },
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+
 
   const canGoNext = () => {
     switch (steps[currentIndex].key) {

@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -8,6 +12,8 @@ import Home from "./pages/Home";
 import Results from "./pages/Results";
 import CandidateDetails from "./pages/CandidateDetails";
 import Login from "./pages/Login";
+import Recruiter from "./pages/Recruiter";
+import Approval from "./pages/Approval";
 
 type AppShellProps = {
   darkMode: boolean;
@@ -49,6 +55,24 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
             element={
               <ProtectedRoute>
                 <CandidateDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/recruiter"
+            element={
+              <ProtectedRoute>
+                <Recruiter />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/approval"
+            element={
+              <ProtectedRoute>
+                <Approval />
               </ProtectedRoute>
             }
           />

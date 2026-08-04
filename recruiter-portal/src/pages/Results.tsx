@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import Card from "../components/Card/Card";

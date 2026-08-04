@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 """
 Seed script to create dummy approved jobs in PostgreSQL and provision their MinIO buckets.
 Runs automatically or standalone.

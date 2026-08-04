@@ -1,16 +1,20 @@
-import { Link, useNavigate } from "react-router-dom";
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
 
+import { Link, useNavigate } from "react-router-dom";
 import { clearToken } from "../../lib/auth";
 
 type NavbarProps = {
-  darkMode: boolean;
-  setDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+  darkMode?: boolean;
+  setDarkMode?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 function Navbar({
-  darkMode,
-  setDarkMode,
+  darkMode = false,
+  setDarkMode = () => {},
 }: NavbarProps) {
+
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -30,6 +34,14 @@ function Navbar({
         <div className="flex items-center nav-links">
           <Link to="/" className="transition">
             Home
+          </Link>
+
+          <Link to="/recruiter" className="transition">
+            Recruiter
+          </Link>
+
+          <Link to="/approval" className="transition">
+            Approval
           </Link>
 
           <Link to="/results" className="transition">

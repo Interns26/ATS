@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 """
 Storage routes: list, download, and delete files from MinIO.
 
@@ -45,4 +47,4 @@ async def download(object_key: str):
 @router.delete("/{object_key:path}")
 async def delete(object_key: str):
     delete_file(DEFAULT_BUCKET, object_key)
-    return {"deleted": object_key}
+    return {"deleted": object_key}

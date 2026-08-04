@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 from io import BytesIO
 from pathlib import Path
 from pypdf import PdfReader

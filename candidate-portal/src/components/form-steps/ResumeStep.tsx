@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { useRef, useState } from "react";
 import { Inbox, FileCheck, X } from "lucide-react";
 

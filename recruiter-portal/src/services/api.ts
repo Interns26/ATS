@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { getToken, clearToken } from "../lib/auth";
 
 export const API_URL = "http://localhost:8000";
@@ -7,7 +11,19 @@ export type MatchedSection = {
   resume_evidence: string;
 };
 
+export type LoadedResume = {
+  filename: string;
+  size: number;
+  last_modified: string;
+  candidate_name?: string;
+  email?: string;
+  university?: string;
+  cgpa?: number | null;
+  download_url?: string;
+};
+
 export type ParsedResume = {
+
   id: string | null;
   name: string | null;
   cgpa: string | null;
@@ -184,4 +200,80 @@ export async function downloadResume(
   }
 
   return response.blob();
+}
+
+// ── Job API Functions ───────────────────────────────────────────────────────
+
+export type Job = {
+  id: string;
+  title: string;
+  location?: string;
+  employment_type?: string;
+  department?: string;
+  description?: string;
+  responsibilities?: string[];
+  requirements?: string[];
+  opening_date?: string;
+  closing_date?: string;
+  is_approved?: boolean;
+  minio_bucket?: string;
+  created_at?: string;
+};
+
+export async function createJob(jobData: {
+  title: string;
+  location?: string;
+  employment_type?: string;
+  department?: string;
+  description?: string;
+  responsibilities?: string[];
+  requirements?: string[];
+}): Promise<{ job_id: string; is_approved: boolean }> {
+  const response = await apiFetch("/jobs/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(jobData),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to create job.");
+  }
+  return response.json();
+}
+
+export async function getPendingJobs(): Promise<Job[]> {
+  const response = await apiFetch("/jobs/pending");
+  if (!response.ok) throw new Error("Failed to load pending jobs.");
+  return response.json();
+}
+
+export async function getApprovedJobs(): Promise<Job[]> {
+  const response = await apiFetch("/jobs/");
+  if (!response.ok) throw new Error("Failed to load approved jobs.");
+  return response.json();
+}
+
+
+export async function getAllJobs(): Promise<Job[]> {
+  const response = await apiFetch("/jobs/all");
+  if (!response.ok) throw new Error("Failed to load jobs.");
+  return response.json();
+}
+
+export async function approveJob(jobId: string): Promise<{ job_id: string; minio_bucket: string }> {
+  const response = await apiFetch(`/jobs/${jobId}/approve`, {
+    method: "PATCH",
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to approve job.");
+  }
+  return response.json();
+}
+
+export async function deleteJob(jobId: string): Promise<void> {
+  const response = await apiFetch(`/jobs/${jobId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete job.");
 }

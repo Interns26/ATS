@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 export type JobStatus = "open" | "closing_soon" | "new";
 
 export interface Job {

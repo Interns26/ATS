@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 from fastapi import APIRouter
 from app.services.storage import list_buckets
 

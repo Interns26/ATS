@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 from langgraph.graph import StateGraph
 from langgraph.graph import END
 

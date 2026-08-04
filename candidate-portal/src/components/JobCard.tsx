@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { MapPin, Clock, ArrowUpRight } from "lucide-react";
 import type { Job } from "../types/job";
 import { getJobStatus, formatDate } from "../lib/jobStatus";

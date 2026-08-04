@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 """
 Auth service: password hashing + JWT issuing/verification.
 
@@ -70,19 +72,24 @@ def authenticate_admin(username: str, password: str) -> bool:
     return verify_password(password, admin_password_hash)
 
 
-def create_access_token(username: str) -> tuple[str, int]:
+def create_access_token(
+    username: str, role: str = "admin", extra_claims: dict | None = None
+) -> tuple[str, int]:
     """Returns (token, expires_in_seconds)."""
     expire_minutes = _get_expire_minutes()
     expire_at = datetime.now(timezone.utc) + timedelta(minutes=expire_minutes)
 
-    payload = {"sub": username, "exp": expire_at}
+    payload = {"sub": username, "role": role, "exp": expire_at}
+    if extra_claims:
+        payload.update(extra_claims)
+
     token = jwt.encode(payload, _get_jwt_secret(), algorithm=ALGORITHM)
 
     return token, expire_minutes * 60
 
 
-def decode_access_token(token: str) -> str:
-    """Returns the username (the `sub` claim). Raises InvalidTokenError on failure."""
+def decode_token_payload(token: str) -> dict:
+    """Returns the full decoded JWT payload dict. Raises InvalidTokenError on failure."""
     try:
         payload = jwt.decode(token, _get_jwt_secret(), algorithms=[ALGORITHM])
     except JWTError as exc:
@@ -92,4 +99,10 @@ def decode_access_token(token: str) -> str:
     if not username:
         raise InvalidTokenError("Token missing subject claim")
 
-    return username
+    return payload
+
+
+def decode_access_token(token: str) -> str:
+    """Returns the username (the `sub` claim). Raises InvalidTokenError on failure."""
+    payload = decode_token_payload(token)
+    return payload["sub"]

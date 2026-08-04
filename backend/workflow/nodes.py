@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 from dotenv import load_dotenv
 
 load_dotenv()

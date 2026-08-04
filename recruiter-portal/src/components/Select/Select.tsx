@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 type Props = {
   value: string;
   onChange: (value: string) => void;

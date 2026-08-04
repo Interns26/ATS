@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 """
 Storage service for MinIO.
 """
@@ -69,3 +71,13 @@ def list_files(bucket_name: str, prefix: str = ""):
 
 def delete_file(bucket_name: str, object_key: str):
     _mc.remove_object(bucket_name, object_key)
+
+
+def delete_bucket(bucket_name: str):
+    """Delete a MinIO bucket and all files inside it."""
+    if _mc.bucket_exists(bucket_name):
+        objects = _mc.list_objects(bucket_name, recursive=True)
+        for obj in objects:
+            _mc.remove_object(bucket_name, obj.object_name)
+        _mc.remove_bucket(bucket_name)
+

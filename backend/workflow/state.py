@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Coworx UK. All rights reserved.
+
 from typing import TypedDict
 
 from .models import ResumeInfo

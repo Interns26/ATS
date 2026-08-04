@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { TextField, TextAreaField } from "../form/FormFields";
 import type { BasicInfo } from "../../types/application";
 

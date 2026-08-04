@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import type { Job, JobStatus } from "../types/job";
 
 const DAY_MS = 1000 * 60 * 60 * 24;

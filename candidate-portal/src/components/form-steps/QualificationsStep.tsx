@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 Coworx UK. All rights reserved.
+ */
+
 import { Plus, Trash2 } from "lucide-react";
 import { TextField, SelectField } from "../form/FormFields";
 import type { Qualification } from "../../types/application";
