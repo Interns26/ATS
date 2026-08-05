@@ -116,40 +116,46 @@ export function JobDetail() {
           </div>
 
           <div className="space-y-8 p-8">
-            <section>
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink-500">
-                About the role
-              </h2>
-              <p className="text-ink-700 leading-relaxed">{job.description}</p>
-            </section>
+            {job.description && (
+              <section>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink-500">
+                  About the role
+                </h2>
+                <p className="text-ink-700 leading-relaxed whitespace-pre-line">{job.description}</p>
+              </section>
+            )}
 
-            <section>
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink-500">
-                Responsibilities
-              </h2>
-              <ul className="space-y-2">
-                {job.responsibilities.map((item, i) => (
-                  <li key={i} className="flex gap-2 text-ink-700">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </section>
+            {job.responsibilities && job.responsibilities.length > 0 && (
+              <section>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink-500">
+                  Responsibilities
+                </h2>
+                <ul className="space-y-2">
+                  {job.responsibilities.map((item, i) => (
+                    <li key={i} className="flex gap-2 text-ink-700">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-            <section>
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink-500">
-                Requirements
-              </h2>
-              <ul className="space-y-2">
-                {job.requirements.map((item, i) => (
-                  <li key={i} className="flex gap-2 text-ink-700">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-600" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </section>
+            {job.requirements && job.requirements.length > 0 && (
+              <section>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink-500">
+                  Requirements
+                </h2>
+                <ul className="space-y-2">
+                  {job.requirements.map((item, i) => (
+                    <li key={i} className="flex gap-2 text-ink-700">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-600" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
 
           <div className="border-t border-ink-100 p-8">

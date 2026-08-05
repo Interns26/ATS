@@ -277,3 +277,27 @@ export async function deleteJob(jobId: string): Promise<void> {
   });
   if (!response.ok) throw new Error("Failed to delete job.");
 }
+
+export async function updateJob(
+  jobId: string,
+  jobData: {
+    title?: string;
+    department?: string;
+    description?: string;
+    responsibilities?: string[];
+    requirements?: string[];
+    location?: string;
+    employment_type?: string;
+  }
+): Promise<void> {
+  const response = await apiFetch(`/jobs/${jobId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(jobData),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to update job.");
+  }
+}
+

@@ -55,6 +55,19 @@ export type SubmitApplicationResponse = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+function parseArrayField(val: any): string[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return val.split("\n").map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 /** Transform a raw snake_case API job object to the camelCase Job type. */
 function toJob(raw: Record<string, any>): Job {
   return {
@@ -66,8 +79,8 @@ function toJob(raw: Record<string, any>): Job {
     closingDate: raw.closing_date ?? "",
     department: raw.department ?? "",
     description: raw.description ?? "",
-    responsibilities: raw.responsibilities ?? [],
-    requirements: raw.requirements ?? [],
+    responsibilities: parseArrayField(raw.responsibilities),
+    requirements: parseArrayField(raw.requirements),
   };
 }
 
