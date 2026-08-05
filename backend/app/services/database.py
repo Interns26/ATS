@@ -112,7 +112,33 @@ CREATE TABLE IF NOT EXISTS resume_analysis (
     created_at      TIMESTAMPTZ DEFAULT now(),
     UNIQUE(email, job_id)
 );
+
+CREATE TABLE IF NOT EXISTS team_leads (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            TEXT NOT NULL UNIQUE,
+    username        TEXT NOT NULL UNIQUE,
+    password_hash   TEXT NOT NULL,
+    role            TEXT NOT NULL DEFAULT 'team_lead',
+    created_at      TIMESTAMPTZ DEFAULT now()
+);
 """
+
+
+def _seed_team_leads(cur) -> None:
+    from app.services.auth import hash_password
+    cur.execute("SELECT COUNT(*) AS count FROM team_leads")
+    if cur.fetchone()["count"] == 0:
+        default_leads = [
+            ("Sarah Jenkins", "sarah", hash_password("password123"), "team_lead"),
+            ("Alex Morgan", "alex", hash_password("password123"), "team_lead"),
+            ("David Chen", "david", hash_password("password123"), "team_lead"),
+            ("Emily Taylor", "emily", hash_password("password123"), "team_lead"),
+        ]
+        for name, username, pw_hash, role in default_leads:
+            cur.execute(
+                "INSERT INTO team_leads (name, username, password_hash, role) VALUES (%s, %s, %s, %s)",
+                (name, username, pw_hash, role),
+            )
 
 
 def init_db() -> None:
@@ -121,5 +147,7 @@ def init_db() -> None:
         with conn.cursor() as cur:
             cur.execute(_CREATE_TABLES_SQL)
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS password_hash TEXT;")
+            _seed_team_leads(cur)
+
 
 

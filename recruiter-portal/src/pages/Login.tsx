@@ -34,8 +34,9 @@ function Login() {
 
     try {
       const data = await login(username, password);
-      setToken(data.access_token);
-      navigate("/", { replace: true });
+      setToken(data.access_token, data.user ?? { username, name: username, role: data.role });
+      const targetPath = (data.user?.role === "hr_admin" || data.role === "hr_admin") ? "/approval" : "/";
+      navigate(targetPath, { replace: true });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to log in."
@@ -47,7 +48,7 @@ function Login() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md space-y-4">
         <Card title="Sign in to ATS">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -61,6 +62,7 @@ function Login() {
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. sarah or admin"
                 autoFocus
               />
             </div>
@@ -90,6 +92,22 @@ function Login() {
             </Button>
           </form>
         </Card>
+
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-xs space-y-2 text-slate-600 dark:text-slate-400">
+          <p className="font-semibold text-slate-800 dark:text-slate-200">Available Portal Logins:</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="font-semibold text-blue-600 dark:text-blue-400 block mb-0.5">Team Lead (Recruiter)</span>
+              <p>Username: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">sarah</code></p>
+              <p>Password: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">password123</code></p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="font-semibold text-purple-600 dark:text-purple-400 block mb-0.5">HR Admin</span>
+              <p>Username: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">admin</code></p>
+              <p>Password: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">admin123</code></p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

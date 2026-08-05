@@ -33,6 +33,17 @@ class ResumeInfo(BaseModel):
 
     certifications: List[str] = Field(default_factory=list)
 
+    years_of_experience: Optional[float] = Field(
+        default=None,
+        description="Total estimated years of professional experience."
+    )
+
+    seniority_level: Optional[str] = Field(
+        default=None,
+        description="Junior, Mid-level, Senior, Lead, or Executive."
+    )
+
+
 class MatchedSection(BaseModel):
 
     job_requirement: str = Field(
@@ -47,11 +58,11 @@ class MatchedSection(BaseModel):
 class ATSResult(BaseModel):
 
     ats_score: int = Field(
-        description="Score between 0 and 100."
+        description="Overall ATS compatibility score between 0 and 100."
     )
 
     recommendation: str = Field(
-        description="Final recommendation like Interview, Reject, Hold."
+        description="Final recommendation like Interview, Consider, or Reject."
     )
 
     matched_skills: List[str] = Field(default_factory=list)
@@ -65,3 +76,8 @@ class ATSResult(BaseModel):
     matched_sections: List[MatchedSection] = Field(default_factory=list)
 
     missing_requirements: List[str] = Field(default_factory=list)
+
+    experience_match: Optional[str] = Field(
+        default=None,
+        description="Evaluation of candidate's total experience and seniority match for the role."
+    )

@@ -40,6 +40,37 @@ def get_resumes(bucket_name: str):
     except Exception as exc:
         print(f"[ResumesRouter] Could not fetch Postgres application details: {exc}")
 
+    # Fetch cached ATS scores for this job bucket from resume_analysis table
+    ats_map = {}
+    try:
+        import json
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT filename, email, ats_result
+                    FROM resume_analysis
+                    WHERE job_id = %s
+                    """,
+                    (bucket_name,),
+                )
+                rows = cur.fetchall()
+                for r in rows:
+                    ats_res = r.get("ats_result")
+                    if isinstance(ats_res, str):
+                        try:
+                            ats_res = json.loads(ats_res)
+                        except Exception:
+                            ats_res = {}
+                    score = ats_res.get("ats_score") if isinstance(ats_res, dict) else None
+                    if score is not None:
+                        if r.get("filename"):
+                            ats_map[r["filename"]] = score
+                        if r.get("email"):
+                            ats_map[r["email"]] = score
+    except Exception as exc:
+        print(f"[ResumesRouter] Could not fetch cached ATS scores: {exc}")
+
     result = []
     for f in files:
         key = f["filename"]
@@ -62,14 +93,20 @@ def get_resumes(bucket_name: str):
             except ValueError:
                 pass
 
+        email = app_data.get("email") or "-"
+        cached_ats_score = ats_map.get(key)
+        if cached_ats_score is None and email != "-":
+            cached_ats_score = ats_map.get(email)
+
         result.append({
             "filename": key,
             "size": f.get("size", 0),
             "last_modified": f.get("last_modified", ""),
             "candidate_name": raw_name,
-            "email": app_data.get("email") or "-",
+            "email": email,
             "university": app_data.get("university") or "N/A",
             "cgpa": parsed_cgpa,
+            "ats_score": cached_ats_score,
             "download_url": f"http://localhost:8000/resumes/{bucket_name}/download/{key}"
         })
 

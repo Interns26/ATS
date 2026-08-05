@@ -63,6 +63,11 @@ def _row_to_dict(row) -> dict:
     for k, v in d.items():
         if hasattr(v, "isoformat"):
             d[k] = v.isoformat()
+        elif k in ("responsibilities", "requirements") and isinstance(v, str):
+            try:
+                d[k] = json.loads(v)
+            except Exception:
+                pass
     return d
 
 

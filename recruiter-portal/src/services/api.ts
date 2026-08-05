@@ -19,6 +19,7 @@ export type LoadedResume = {
   email?: string;
   university?: string;
   cgpa?: number | null;
+  ats_score?: number | null;
   download_url?: string;
 };
 
@@ -62,10 +63,18 @@ export type AnalyzeResponse = {
   failed: AnalyzeError[];
 };
 
+export type LoginUser = {
+  username: string;
+  name: string;
+  role: string;
+};
+
 export type LoginResponse = {
   access_token: string;
   token_type: string;
   expires_in: number;
+  role: string;
+  user?: LoginUser;
 };
 
 /**
@@ -159,10 +168,11 @@ export async function extractTextFromFile(file: File): Promise<string> {
 
 export async function analyzeCandidates(
   bucketName: string,
-  jobDescription: string
+  jobDescription: string,
+  force: boolean = false
 ): Promise<AnalyzeResponse> {
   const response = await apiFetch(
-    `/analyze/${encodeURIComponent(bucketName)}`,
+    `/analyze/${encodeURIComponent(bucketName)}${force ? "?force=true" : ""}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -178,6 +188,17 @@ export async function analyzeCandidates(
   }
 
   return response.json();
+}
+
+export async function clearAnalysisCache(bucketName: string): Promise<void> {
+  const response = await apiFetch(`/analyze/cache/${encodeURIComponent(bucketName)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to clear analysis cache.");
+  }
 }
 
 /**
@@ -299,5 +320,18 @@ export async function updateJob(
     const detail = await response.json().catch(() => null);
     throw new Error(detail?.detail ?? "Failed to update job.");
   }
+}
+
+export type TeamLead = {
+  id: string;
+  name: string;
+  username: string;
+  role: string;
+};
+
+export async function getTeamLeads(): Promise<TeamLead[]> {
+  const response = await apiFetch("/auth/team-leads");
+  if (!response.ok) throw new Error("Failed to load team leads.");
+  return response.json();
 }
 

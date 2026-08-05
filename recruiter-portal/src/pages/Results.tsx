@@ -25,18 +25,7 @@ function candidateName(candidate: CandidateResult) {
   return candidate.resume.name || candidate.filename;
 }
 
-function missingFields(candidate: CandidateResult): string[] {
-  const { resume } = candidate;
-  const missing: string[] = [];
 
-  if (!resume.name) missing.push("Name");
-  if (!resume.cgpa) missing.push("CGPA");
-  if (!resume.university) missing.push("University");
-  if (resume.skills.length === 0) missing.push("Skills");
-  if (resume.experience.length === 0) missing.push("Experience");
-
-  return missing;
-}
 
 function loadAnalysis(state: unknown): AnalyzeResponse | null {
   if (state && typeof state === "object" && "analysis" in state) {
@@ -114,12 +103,7 @@ function Results() {
     });
   }
 
-  const candidatesWithMissingInfo = candidates
-    .map((candidate) => ({
-      candidate,
-      missing: missingFields(candidate),
-    }))
-    .filter((entry) => entry.missing.length > 0);
+
 
   return (
     <div className="space-y-6">
@@ -223,42 +207,7 @@ function Results() {
         </div>
       </Card>
 
-      {candidatesWithMissingInfo.length > 0 && (
-        <Card title="Missing Candidate Information">
-            <div className="overflow-x-auto table-wrap">
-              <table className="min-w-full">
-              <thead>
-                <tr className="border-b table-header">
-                  <th className="p-3 text-left">Candidate</th>
-                  <th className="p-3 text-left">Missing Information</th>
-                  <th className="p-3 text-center">Action</th>
-                </tr>
-              </thead>
 
-              <tbody>
-                {candidatesWithMissingInfo.map(({ candidate, missing }) => (
-                  <tr
-                    key={candidate.filename}
-                    className="border-b table-row"
-                  >
-                    <td className="p-3">{candidateName(candidate)}</td>
-
-                    <td className="p-3 font-medium text-black-600 dark:text-black-400">
-                      {missing.join(", ")}
-                    </td>
-
-                    <td className="p-3 text-center">
-                      <Button onClick={() => viewCandidate(candidate)}>
-                        View
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

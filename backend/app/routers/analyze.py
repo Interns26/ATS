@@ -78,6 +78,51 @@ def _get_candidate_email(object_key: str) -> str:
     return f"{clean_name}@candidate.ats"
 
 
+def _format_full_job_description(bucket_name: str, fallback_jd: str) -> str:
+    """Fetch job details from PostgreSQL by minio_bucket and format Summary, Responsibilities, and Requirements into a full text block."""
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT title, description, responsibilities, requirements FROM jobs WHERE minio_bucket = %s LIMIT 1",
+                    (bucket_name,),
+                )
+                row = cur.fetchone()
+                if row:
+                    parts = []
+                    if row.get("title"):
+                        parts.append(f"JOB TITLE: {row['title']}")
+                    if row.get("description"):
+                        parts.append(f"ROLE SUMMARY:\n{row['description']}")
+
+                    resps = row.get("responsibilities")
+                    if resps:
+                        if isinstance(resps, str):
+                            try:
+                                resps = json.loads(resps)
+                            except Exception:
+                                resps = [resps]
+                        if isinstance(resps, list) and len(resps) > 0:
+                            parts.append("KEY RESPONSIBILITIES:\n" + "\n".join(f"- {r}" for r in resps))
+
+                    reqs = row.get("requirements")
+                    if reqs:
+                        if isinstance(reqs, str):
+                            try:
+                                reqs = json.loads(reqs)
+                            except Exception:
+                                reqs = [reqs]
+                        if isinstance(reqs, list) and len(reqs) > 0:
+                            parts.append("REQUIRED QUALIFICATIONS & SKILLS:\n" + "\n".join(f"- {r}" for r in reqs))
+
+                    if parts:
+                        return "\n\n".join(parts)
+    except Exception as exc:
+        print(f"[AnalyzeRouter] Error building full job description for {bucket_name}: {exc}")
+
+    return fallback_jd
+
+
 def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description: str) -> CandidateResult:
     """
     Checks cache first for existing ATS score for candidate email + job.
@@ -127,9 +172,11 @@ def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description:
         tmp.write(content)
         tmp.close()
 
+        full_jd = _format_full_job_description(bucket_name, job_description)
+
         state = {
             "resume_path": tmp.name,
-            "job_description": job_description,
+            "job_description": full_jd,
         }
 
         result = graph.invoke(state)
@@ -175,14 +222,43 @@ def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description:
     )
 
 
+@router.delete("/cache/{bucket_name}")
+def clear_analysis_cache(bucket_name: str):
+    """
+    Remove all stored ATS analysis results from PostgreSQL database for a specific job bucket,
+    allowing clean re-analysis of candidates.
+    """
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM resume_analysis WHERE job_id = %s",
+                    (bucket_name,),
+                )
+                deleted_count = cur.rowcount
+        return {"status": "success", "bucket": bucket_name, "deleted_count": deleted_count}
+    except Exception as exc:
+        raise HTTPException(500, f"Failed to clear cache: {exc}")
+
+
 @router.post("/{bucket_name}", response_model=AnalyzeResponse)
-def analyze_bucket(bucket_name: str, payload: AnalyzeRequest):
+def analyze_bucket(bucket_name: str, payload: AnalyzeRequest, force: bool = False):
     """
     Run every resume in `bucket_name` through the resume-parsing + ATS-scoring
     workflow against the supplied job description, returning cached or newly computed results.
+    If force=True, clears existing cache first to force a fresh re-analysis.
     """
     if not payload.job_description.strip():
         raise HTTPException(400, "job_description is required")
+
+    if force:
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM resume_analysis WHERE job_id = %s", (bucket_name,))
+                    print(f"[AnalyzeCache] Force flag passed — cleared cache for {bucket_name}.")
+        except Exception as exc:
+            print(f"[AnalyzeCache] Force cache clear warning: {exc}")
 
     all_files = list_files(bucket_name)
     resume_files = [

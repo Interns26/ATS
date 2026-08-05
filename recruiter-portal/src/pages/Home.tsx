@@ -19,6 +19,7 @@ import {
   analyzeCandidates,
   extractTextFromFile,
   getApprovedJobs,
+  clearAnalysisCache,
 } from "../services/api";
 import type { AnalyzeResponse, Job, LoadedResume } from "../services/api";
 import {
@@ -68,6 +69,7 @@ function Home() {
 
   // Resume Analyzer State
   const [analyzing, setAnalyzing] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const [extractingJD, setExtractingJD] = useState(false);
   const [jdFileName, setJdFileName] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState("");
@@ -98,7 +100,7 @@ function Home() {
       setConnected(true);
     } catch (error) {
       console.error(error);
-      alert("Unable to connect to MinIO.");
+      alert("Failed to fetch buckets from MinIO storage.");
     }
   }
 
@@ -126,14 +128,45 @@ function Home() {
     loadResumesForBucket(selectedBucket);
   }
 
+  function parseArrayField(val: unknown): string[] {
+    if (Array.isArray(val)) return val.filter(Boolean);
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      if (!trimmed) return [];
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed.filter(Boolean);
+        } catch {
+          // Fallback to line split below
+        }
+      }
+      return trimmed.split("\n").map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  }
+
   // When user selects an approved job from the dropdown
   function handleApprovedJobSelect(jobId: string) {
     setSelectedJobId(jobId);
     const job = approvedJobs.find((j) => j.id === jobId);
     if (job) {
-      if (job.description) {
+      const parts: string[] = [];
+      if (job.title) parts.push(`JOB TITLE: ${job.title}`);
+      if (job.description) parts.push(`ROLE SUMMARY:\n${job.description}`);
+
+      const resps = parseArrayField(job.responsibilities);
+      if (resps.length > 0) parts.push("KEY RESPONSIBILITIES:\n" + resps.map((r) => `- ${r}`).join("\n"));
+
+      const reqs = parseArrayField(job.requirements);
+      if (reqs.length > 0) parts.push("REQUIRED QUALIFICATIONS & SKILLS:\n" + reqs.map((r) => `- ${r}`).join("\n"));
+
+      if (parts.length > 0) {
+        setJobDescription(parts.join("\n\n"));
+      } else if (job.description) {
         setJobDescription(job.description);
       }
+
       if (job.minio_bucket) {
         setSelectedBucket(job.minio_bucket);
         setConnected(true);
@@ -201,7 +234,29 @@ function Home() {
     }
   }
 
-  async function handleAnalyze() {
+  async function handleClearCache() {
+    if (!selectedBucket) {
+      alert("Please select an approved job or bucket first.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to remove stored analysis results for bucket "${selectedBucket}" from the database? This allows a fresh re-analysis.`)) {
+      return;
+    }
+    setClearingCache(true);
+    try {
+      await clearAnalysisCache(selectedBucket);
+      sessionStorage.removeItem(ANALYSIS_STORAGE_KEY);
+      alert("Analysis results removed from database successfully! You can now rerun candidate analysis.");
+      loadResumesForBucket(selectedBucket);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to clear analysis results.");
+    } finally {
+      setClearingCache(false);
+    }
+  }
+
+  async function handleAnalyze(force: boolean = false) {
     if (!selectedBucket) {
       alert("Please select and connect to a resume bucket first.");
       return;
@@ -233,7 +288,8 @@ function Home() {
     try {
       const data: AnalyzeResponse = await analyzeCandidates(
         selectedBucket,
-        jobDescription
+        jobDescription,
+        force
       );
 
       sessionStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(data));
@@ -261,22 +317,25 @@ function Home() {
 
       {analyzing && (
         <LoadingOverlay
-          message="Analyzing candidates..."
-          subMessage="Our AI is reading each resume and scoring it against the job description. This can take a little while for larger batches."
+          message="Analyzing candidate resumes..."
+          subMessage="Evaluating resume experience, skills, and qualifications using LangGraph."
         />
       )}
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">ATS Resume Analyzer</h1>
-          <p className="mt-2 muted">
-            Select an approved job opening or resume bucket, review candidates, apply custom constraints, and analyze top applications.
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
+            Automated ATS Resume Analyzer
+          </h1>
+          <p className="muted">
+            Batch-evaluate candidate resumes against approved job postings using AI & LangGraph workflows.
           </p>
         </div>
 
+        {/* Approved Job Openings Dropdown */}
         {approvedJobs.length > 0 && (
-          <Card title="Quick Select Approved Job Position">
-            <div className="space-y-3">
+          <Card title="Approved Job Openings">
+            <div className="space-y-2">
               <label className="block text-sm font-medium">
                 Choose an Approved Job Opening:
               </label>
@@ -299,63 +358,10 @@ function Home() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card title="Resume Source">
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block font-medium">Resume Bucket</label>
-                <Select
-                  value={selectedBucket}
-                  onChange={setSelectedBucket}
-                  options={buckets.length > 0 ? buckets : (selectedBucket ? [selectedBucket] : [])}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <Button onClick={connectToMinio}>Connect</Button>
-                <Button onClick={loadResumes}>Load Resumes</Button>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span
-                  className={`h-3 w-3 rounded-full ${connected ? "bg-green-500" : "bg-red-500"
-                    }`}
-                ></span>
-                <span className="muted">
-                  {connected
-                    ? `Connected (${selectedBucket || "All buckets"})`
-                    : "Not Connected"}
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Resume Summary">
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Total Resumes</span>
-                <span className="font-semibold">{resumeSummary.total}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Complete</span>
-                <span className="font-semibold text-green-600">
-                  {resumeSummary.complete}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Incomplete</span>
-                <span className="font-semibold text-red-600">
-                  {resumeSummary.incomplete}
-                </span>
-              </div>
-            </div>
-          </Card>
-        </div>
-
         {/* Unified Loaded Candidate Resumes Table */}
         <Card title={`Loaded Candidate Resumes (${filteredResumes.length} of ${resumes.length})`}>
           {resumes.length === 0 ? (
-            <p className="muted">No resumes loaded yet. Please select an approved job or connect to a bucket above.</p>
+            <p className="muted">No resumes loaded yet. Please select an approved job above to load candidate resumes.</p>
           ) : (
             <div className="overflow-x-auto table-wrap">
               <table className="min-w-full text-sm">
@@ -366,6 +372,7 @@ function Home() {
                     <th className="p-3">Email</th>
                     <th className="p-3">University</th>
                     <th className="p-3">CGPA</th>
+                    <th className="p-3">ATS Score (DB)</th>
                     <th className="p-3">Filename & Size</th>
                     <th className="p-3">Last Modified</th>
                     <th className="p-3">Resume Action</th>
@@ -379,6 +386,23 @@ function Home() {
                       <td className="p-3 text-slate-600 dark:text-slate-300">{r.email || "-"}</td>
                       <td className="p-3 text-slate-600 dark:text-slate-300">{r.university || "N/A"}</td>
                       <td className="p-3 font-medium">{r.cgpa !== null && r.cgpa !== undefined ? r.cgpa : "-"}</td>
+                      <td className="p-3">
+                        {r.ats_score !== undefined && r.ats_score !== null ? (
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              r.ats_score >= 70
+                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                : r.ats_score >= 50
+                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                            }`}
+                          >
+                            {r.ats_score}%
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 dark:text-slate-500 italic">Not Analyzed</span>
+                        )}
+                      </td>
                       <td className="p-3 text-xs">
                         <span className="font-semibold">{r.filename}</span>
                         <br />
@@ -401,7 +425,7 @@ function Home() {
                   ))}
                   {filteredResumes.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="p-4 text-center muted">
+                      <td colSpan={9} className="p-4 text-center muted">
                         No candidates match the applied CGPA and University constraints.
                       </td>
                     </tr>
@@ -517,8 +541,24 @@ function Home() {
           </div>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleAnalyze} disabled={analyzing}>
+        <div className="flex flex-wrap justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleClearCache}
+            disabled={clearingCache || !selectedBucket}
+            className="px-4 py-2 bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 rounded-lg text-sm font-semibold transition disabled:opacity-50"
+          >
+            {clearingCache ? "Clearing..." : "🧪 Clear Analysis Results from DB"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAnalyze(true)}
+            disabled={analyzing || !selectedBucket}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50"
+          >
+            ⚡ Force Re-analyze
+          </button>
+          <Button onClick={() => handleAnalyze(false)} disabled={analyzing}>
             {analyzing ? "Analyzing…" : "Analyze Candidates"}
           </Button>
         </div>

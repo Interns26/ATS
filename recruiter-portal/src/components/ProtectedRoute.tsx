@@ -4,16 +4,22 @@
 
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-
-import { isAuthenticated } from "../lib/auth";
+import { isAuthenticated, getUser } from "../lib/auth";
 
 type ProtectedRouteProps = {
   children: ReactNode;
+  allowedRoles?: string[];
 };
 
-function ProtectedRoute({ children }: ProtectedRouteProps) {
+function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
+  }
+
+  const user = getUser();
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    const defaultPath = user.role === "hr_admin" ? "/approval" : "/";
+    return <Navigate to={defaultPath} replace />;
   }
 
   return <>{children}</>;

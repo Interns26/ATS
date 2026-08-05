@@ -83,18 +83,45 @@ def _verify_google_credential(credential: str) -> dict:
 
 
 
+@router.get("/team-leads")
+def get_team_leads():
+    """Return all team leads present in the database for dropdown selection."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, username, role FROM team_leads ORDER BY name ASC")
+            rows = cur.fetchall()
+    return list(rows)
+
+
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest):
-    if not authenticate_admin(payload.username, payload.password):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+    # 1. Try HR Admin authentication
+    if authenticate_admin(payload.username, payload.password):
+        token, expires_in = create_access_token(payload.username, role="hr_admin", extra_claims={"name": "HR Admin"})
+        return LoginResponse(
+            access_token=token,
+            expires_in=expires_in,
+            role="hr_admin",
+            user={"username": payload.username, "role": "hr_admin", "name": "HR Admin"},
+        )
 
-    token, expires_in = create_access_token(payload.username, role="admin")
-    return LoginResponse(
-        access_token=token,
-        expires_in=expires_in,
-        role="admin",
-        user={"username": payload.username, "role": "admin"},
-    )
+    # 2. Try Team Lead database authentication
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, username, password_hash, role FROM team_leads WHERE LOWER(username) = LOWER(%s)", (payload.username.strip(),))
+            user = cur.fetchone()
+
+    if user and verify_password(payload.password, user["password_hash"]):
+        token, expires_in = create_access_token(user["username"], role=user["role"], extra_claims={"name": user["name"]})
+        return LoginResponse(
+            access_token=token,
+            expires_in=expires_in,
+            role=user["role"],
+            user={"username": user["username"], "role": user["role"], "name": user["name"]},
+        )
+
+    raise HTTPException(status_code=401, detail="Invalid username or password")
+
 
 
 @router.post("/google", response_model=LoginResponse)

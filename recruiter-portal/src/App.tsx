@@ -35,7 +35,7 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
           <Route
             path="/"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["team_lead"]}>
                 <Home />
               </ProtectedRoute>
             }
@@ -44,7 +44,7 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
           <Route
             path="/results"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["team_lead"]}>
                 <Results />
               </ProtectedRoute>
             }
@@ -53,7 +53,7 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
           <Route
             path="/candidate/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["team_lead"]}>
                 <CandidateDetails />
               </ProtectedRoute>
             }
@@ -62,7 +62,7 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
           <Route
             path="/recruiter"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["team_lead", "hr_admin"]}>
                 <Recruiter />
               </ProtectedRoute>
             }
@@ -71,7 +71,7 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
           <Route
             path="/approval"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["hr_admin"]}>
                 <Approval />
               </ProtectedRoute>
             }

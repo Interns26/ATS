@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { getAllJobs, createJob, deleteJob, updateJob } from "../services/api";
+import { getAllJobs, createJob, deleteJob, updateJob, getTeamLeads, type TeamLead } from "../services/api";
 
 type JobStatus = "Approved" | "Not Approved";
 
@@ -121,10 +121,12 @@ function DetailsModal({ job, onClose }: { job: Job; onClose: () => void }) {
 
 function EditModal({
   job,
+  teamLeads,
   onClose,
   onSave,
 }: {
   job: Job;
+  teamLeads: TeamLead[];
   onClose: () => void;
   onSave: (updated: {
     id: string;
@@ -136,7 +138,7 @@ function EditModal({
   }) => Promise<void>;
 }) {
   const [name, setName] = useState(job.name);
-  const [tl, setTl] = useState(job.tl);
+  const [tl, setTl] = useState(job.tl || (teamLeads[0]?.name ?? "General"));
   const [description, setDescription] = useState(job.description);
   const [responsibilitiesText, setResponsibilitiesText] = useState((job.responsibilities || []).join("\n"));
   const [requirementsText, setRequirementsText] = useState((job.requirements || []).join("\n"));
@@ -145,7 +147,7 @@ function EditModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !tl.trim()) {
-      alert("Please fill in Job Name and Team Lead.");
+      alert("Please fill in Job Name and select a Team Lead.");
       return;
     }
     setSaving(true);
@@ -204,12 +206,22 @@ function EditModal({
             <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">
               Team Lead
             </label>
-            <input
+            <select
               value={tl}
               onChange={(e) => setTl(e.target.value)}
               className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 dark:text-slate-100"
               required
-            />
+            >
+              {teamLeads.length === 0 ? (
+                <option value={tl}>{tl}</option>
+              ) : (
+                teamLeads.map((lead) => (
+                  <option key={lead.id} value={lead.name}>
+                    {lead.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
           <div>
             <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">
@@ -272,6 +284,7 @@ function EditModal({
 
 export default function Recruiter() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [teamLeads, setTeamLeads] = useState<TeamLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"All" | JobStatus>("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -320,13 +333,21 @@ export default function Recruiter() {
 
   useEffect(() => {
     fetchJobs();
+    getTeamLeads()
+      .then((leads) => {
+        setTeamLeads(leads);
+        if (leads.length > 0) {
+          setNewJob((prev) => ({ ...prev, tl: prev.tl || leads[0].name }));
+        }
+      })
+      .catch((err) => console.error("Failed to load team leads:", err));
   }, []);
 
   const filteredJobs = jobs.filter((j) => filter === "All" || j.status === filter);
 
   const handleCreateJob = async () => {
     if (!newJob.name.trim() || !newJob.tl.trim()) {
-      alert("Please fill in Job Name and Team Lead.");
+      alert("Please fill in Job Name and select a Team Lead.");
       return;
     }
     setActionLoading(true);
@@ -342,7 +363,13 @@ export default function Recruiter() {
         requirements: reqList,
       });
       alert("Job created successfully! It is now pending HR approval.");
-      setNewJob({ name: "", tl: "", summary: "", responsibilities: "", requirements: "" });
+      setNewJob({
+        name: "",
+        tl: teamLeads[0]?.name || "",
+        summary: "",
+        responsibilities: "",
+        requirements: "",
+      });
       setShowCreateForm(false);
       fetchJobs();
     } catch (err) {
@@ -391,9 +418,9 @@ export default function Recruiter() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">Recruiter</h1>
+        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">Recruiter Portal</h1>
         <p className="text-slate-400 dark:text-slate-500 mt-1">
-          Post jobs, track approval status, and manage openings.
+          Post jobs, track approval status, and manage team lead openings.
         </p>
       </div>
 
@@ -446,12 +473,21 @@ export default function Recruiter() {
                 onChange={(e) => setNewJob({ ...newJob, name: e.target.value })}
                 className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
               />
-              <input
-                placeholder="Team lead"
+              <select
                 value={newJob.tl}
                 onChange={(e) => setNewJob({ ...newJob, tl: e.target.value })}
-                className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
-              />
+                className="border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-100 font-medium"
+              >
+                {teamLeads.length === 0 ? (
+                  <option value="">Loading Team Leads...</option>
+                ) : (
+                  teamLeads.map((lead) => (
+                    <option key={lead.id} value={lead.name}>
+                      Team Lead: {lead.name}
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -580,6 +616,7 @@ export default function Recruiter() {
       {editJob && (
         <EditModal
           job={editJob}
+          teamLeads={teamLeads}
           onClose={() => setEditJob(null)}
           onSave={handleUpdateJob}
         />
