@@ -11,6 +11,6 @@ export type Thresholds = {
 };
 
 export const DEFAULT_THRESHOLDS: Thresholds = {
-  interview: 85,
-  consider: 70,
+  interview: 70,
+  consider: 50,
 };

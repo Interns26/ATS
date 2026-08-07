@@ -59,7 +59,7 @@ function Home() {
   const [otherUniversity, setOtherUniversity] = useState("");
 
   const [appliedFilters, setAppliedFilters] = useState({
-    cgpaOperator: ">=",
+    cgpaOperator: "<=",
     cgpaValue: MAX_CGPA,
     university: "All",
     otherUniversity: "",

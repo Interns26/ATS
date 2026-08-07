@@ -16,8 +16,8 @@ function CircularProgress({ score }: CircularProgressProps) {
     circumference - (score / 100) * circumference;
 
   const getColor = () => {
-    if (score >= 85) return "#16a34a";
-    if (score >= 70) return "#ca8a04";
+    if (score >= 70) return "#16a34a";
+    if (score >= 50) return "#ca8a04";
     return "#dc2626";
   };
 

@@ -17,27 +17,12 @@ ats_parser = PydanticOutputParser(pydantic_object=ATSResult)
 
 primary_llm = ChatGroq(
     model="llama-3.3-70b-versatile",
-    temperature=0
+    temperature=0,
+    api_key=os.getenv("GROQ_API_KEY")
 )
 
 def _invoke_llm(prompt_text: str):
-    """Try primary Groq LLM; fallback to Google Gemini 2.5 Flash if available and Groq fails."""
-    try:
-        return primary_llm.invoke(prompt_text)
-    except Exception as primary_exc:
-        print(f"[WorkflowLLM] Primary LLM failed: {primary_exc}. Attempting fallback...")
-        google_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if google_api_key:
-            try:
-                fallback_llm = ChatGoogleGenerativeAI(
-                    model="gemini-2.5-flash",
-                    temperature=0,
-                    google_api_key=google_api_key
-                )
-                return fallback_llm.invoke(prompt_text)
-            except Exception as fallback_exc:
-                print(f"[WorkflowLLM] Fallback LLM failed: {fallback_exc}")
-        raise primary_exc
+    return primary_llm.invoke(prompt_text)
 
 
 def extract_text_node(state):
@@ -60,11 +45,19 @@ def ats_node(state):
     response = _invoke_llm(prompt_text)
     result = ats_parser.parse(response.content)
 
-    # Calculate balanced ATS Score
-    total_skills = len(result.matched_skills) + len(result.missing_skills)
-    skill_ratio = (len(result.matched_skills) / total_skills) if total_skills > 0 else 1.0
+    # Deduplicate matched & missing skills case-insensitively for score stability
+    clean_matched_skills = list({s.strip().lower(): s.strip() for s in result.matched_skills if s and s.strip()}.values())
+    matched_set_lower = {s.lower() for s in clean_matched_skills}
+    clean_missing_skills = list({s.strip().lower(): s.strip() for s in result.missing_skills if s and s.strip() and s.strip().lower() not in matched_set_lower}.values())
+    
+    result.matched_skills = clean_matched_skills
+    result.missing_skills = clean_missing_skills
 
-    total_reqs = len(result.matched_sections) + (len(result.matched_sections) + len(result.missing_requirements))
+    # Calculate balanced ATS Score
+    total_skills = len(clean_matched_skills) + len(clean_missing_skills)
+    skill_ratio = (len(clean_matched_skills) / total_skills) if total_skills > 0 else 1.0
+
+    total_reqs = len(result.matched_sections) + len(result.missing_requirements)
     req_ratio = (len(result.matched_sections) / total_reqs) if total_reqs > 0 else 1.0
 
     # 40% Skills match + 40% Requirements match + 20% LLM evaluation score

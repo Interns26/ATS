@@ -43,21 +43,24 @@ You will receive:
 1. A structured candidate resume profile.
 2. A complete job description (including Role Summary, Responsibilities, and Requirements).
 
-Your task is to evaluate how well the candidate matches the job posting.
+Your task is to evaluate how well the candidate matches the job posting with strict consistency and determinism.
 
 Format:
 {ats_format_instructions}
 
 Guidelines:
-1. Match technical skills, framework experience, certifications, education, and years of experience against the Job Summary, Responsibilities, and Requirements.
-2. Recognize technology synonyms and equivalents (e.g., React = React.js, Postgres = PostgreSQL, AWS = Cloud Infrastructure, Python = PyTorch/Django/FastAPI).
-3. Every item in matched_sections must contain:
-   - job_requirement: The exact requirement or responsibility from the job description.
-   - resume_evidence: Explicit proof or experience snippet from the resume satisfying it.
-4. Put any unsatisfied core requirement or responsibility in missing_requirements.
-5. Put any missing technical skill or tool in missing_skills.
-6. Evaluate overall candidate fit and provide a realistic ats_score (0 to 100) taking into account skills, responsibilities, and experience level.
-7. Recommendation must be one of: "Interview", "Consider", or "Reject".
+1. STRICT 1-TO-1 REQUIREMENT EVALUATION:
+   - Identify every distinct requirement and responsibility listed in the Job Description (including experience length, education degree, key responsibilities, and core skills).
+   - Evaluate each JD bullet point strictly ONCE as either a `matched_section` (if satisfied with resume evidence) or a `missing_requirement` (if unsatisfied).
+   - DO NOT merge multiple JD bullet points into a single requirement, and DO NOT split a single JD bullet point into multiple sub-requirements.
+2. TECHNICAL SKILLS MATCHING:
+   - Match technical tools using standard technology names.
+   - Perform GENERALIZED SEMANTIC SKILL DEDUCTION: A candidate satisfies a skill if they have either (a) explicit keyword mentions on their resume, OR (b) demonstrated practical experience with the core underlying technologies comprising that skill domain.
+   - Recognize standard industry synonyms and equivalent frameworks (e.g., React = React.js, Postgres = PostgreSQL, Python = PyTorch/FastAPI).
+   - List missing technical tools in `missing_skills` and matched tools in `matched_skills`. Avoid duplicate or overlapping entries.
+3. HOLISTIC EVALUATION & RECOMMENDATION:
+   - Evaluate overall candidate suitability and provide an objective `ats_score` (0 to 100) taking into account skills match, experience level, and responsibility alignment.
+   - Recommendation must be one of: "Interview", "Consider", or "Reject".
 
 Resume:
 
