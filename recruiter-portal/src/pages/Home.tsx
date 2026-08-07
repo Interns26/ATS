@@ -2,7 +2,7 @@
  * Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -29,7 +29,6 @@ import {
 } from "../lib/analysisStorage";
 import type { Thresholds } from "../lib/analysisStorage";
 
-const UNIVERSITY_OPTIONS = ["All", "UET Lahore", "FAST NUCES", "COMSATS", "Other"];
 const CGPA_OPERATORS = ["<=", ">=", "="];
 const MAX_CGPA = 4;
 
@@ -66,6 +65,18 @@ function Home() {
   });
 
   const [filtering, setFiltering] = useState(false);
+
+  // Dynamic University Options extracted from candidate resumes
+  const universityOptions = useMemo(() => {
+    const extractedSet = new Set<string>();
+    resumes.forEach((r) => {
+      if (r.university && r.university.trim() && r.university.trim() !== "N/A") {
+        extractedSet.add(r.university.trim());
+      }
+    });
+    const sortedList = Array.from(extractedSet).sort();
+    return ["All", ...sortedList, "Other"];
+  }, [resumes]);
 
   // Resume Analyzer State
   const [analyzing, setAnalyzing] = useState(false);
@@ -463,7 +474,7 @@ function Home() {
               <Select
                 value={university}
                 onChange={setUniversity}
-                options={UNIVERSITY_OPTIONS}
+                options={universityOptions}
               />
 
               {university === "Other" && (
