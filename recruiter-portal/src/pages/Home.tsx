@@ -21,6 +21,7 @@ import {
   getApprovedJobs,
   clearAnalysisCache,
 } from "../services/api";
+import { getToken } from "../lib/auth";
 import type { AnalyzeResponse, Job, LoadedResume } from "../services/api";
 import {
   ANALYSIS_STORAGE_KEY,
@@ -198,6 +199,29 @@ function Home() {
     if (op === "<=") return cgpa <= val;
     if (op === ">=") return cgpa >= val;
     return cgpa === val;
+  }
+
+  async function handleDownload(filename: string) {
+    const url = `http://localhost:8000/resumes/${selectedBucket}/download/${filename}`;
+    const token = getToken();
+    try {
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename.split("/").pop() || filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert("Failed to download resume. Please try again.");
+      console.error(err);
+    }
   }
 
   function universityMatches(uni?: string) {
@@ -423,14 +447,12 @@ function Home() {
                         {r.last_modified ? new Date(r.last_modified).toLocaleString() : "-"}
                       </td>
                       <td className="p-3">
-                        <a
-                          href={r.download_url || `http://localhost:8000/resumes/${selectedBucket}/download/${r.filename}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 hover:underline font-semibold text-xs"
+                        <button
+                          onClick={() => handleDownload(r.filename)}
+                          className="text-blue-600 hover:underline font-semibold text-xs cursor-pointer bg-transparent border-none p-0"
                         >
                           View / Download
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   ))}

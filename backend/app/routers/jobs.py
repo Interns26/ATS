@@ -165,10 +165,8 @@ def get_job(job_id: str):
 
 @router.post("/", dependencies=[Depends(get_current_user)], status_code=201)
 def create_job(payload: JobCreate):
-    """Create a new job posting, provision its dedicated MinIO bucket immediately, and set it as approved so it displays on Candidate Portal and Recruiter Portal."""
+    """Create a new job posting (unapproved by default, pending HR Admin approval)."""
     job_id = str(uuid.uuid4())
-    bucket = _bucket_name_for_job(job_id)
-    ensure_bucket_exists(bucket)
 
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -191,12 +189,12 @@ def create_job(payload: JobCreate):
                     json.dumps(payload.requirements),
                     payload.opening_date or None,
                     payload.closing_date or None,
-                    True,   # Approved immediately so candidate portal displays it
-                    bucket, # MinIO storage bucket created immediately!
+                    False,  # Set to unapproved (False) by default
+                    None,   # MinIO bucket is provisioned when approved by HR Admin
                 ),
             )
 
-    return {"job_id": job_id, "is_approved": True, "minio_bucket": bucket}
+    return {"job_id": job_id, "is_approved": False, "minio_bucket": None}
 
 
 @router.patch("/{job_id}/approve", dependencies=[Depends(get_current_user)])
