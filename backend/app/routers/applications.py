@@ -11,7 +11,9 @@ POST /applications/{job_id}
   multipart/form-data fields:
     resume        — PDF or DOCX file
     basic_info    — JSON string  { email, firstName, lastName, city,
-                                   stateProvince, mobileNumber, howHeard }
+                                   stateProvince, mobileNumber, howHeard,
+                                   cnic, phoneNumber, yearsOfExperience,
+                                   currentJobTitle, currentEmployer }
     qualifications  — JSON array  [{ qualification, subject, institute,
                                      grade, graduationYear }, ...]
     work_experience — JSON array  [{ jobField, organization, jobTitle,
@@ -109,8 +111,9 @@ async def submit_application(
                 """
                 INSERT INTO candidates
                   (email, first_name, last_name, city, state_province,
-                   mobile_number, how_heard)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   mobile_number, how_heard, cnic, phone_number,
+                   years_of_experience, current_job_title, current_employer)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -121,6 +124,11 @@ async def submit_application(
                     basic.get("stateProvince"),
                     basic.get("mobileNumber"),
                     basic.get("howHeard"),
+                    basic.get("cnic"),
+                    basic.get("phoneNumber"),
+                    basic.get("yearsOfExperience"),
+                    basic.get("currentJobTitle"),
+                    basic.get("currentEmployer"),
                 ),
             )
             candidate_id = str(cur.fetchone()["id"])

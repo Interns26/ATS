@@ -10,6 +10,11 @@ export interface BasicInfo {
   stateProvince: string;
   mobileNumber: string;
   howHeard: string;
+  cnic?: string;
+  phoneNumber?: string;
+  yearsOfExperience?: number;
+  currentJobTitle?: string;
+  currentEmployer?: string;
 }
 
 export interface Qualification {
@@ -49,6 +54,11 @@ export const emptyBasicInfo: BasicInfo = {
   stateProvince: "",
   mobileNumber: "",
   howHeard: "",
+  cnic: "",
+  phoneNumber: "",
+  yearsOfExperience: undefined,
+  currentJobTitle: "",
+  currentEmployer: "",
 };
 
 export function emptyQualification(): Qualification {

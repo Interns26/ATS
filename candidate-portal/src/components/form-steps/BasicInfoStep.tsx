@@ -9,10 +9,80 @@ interface BasicInfoStepProps {
   value: BasicInfo;
   onChange: (value: BasicInfo) => void;
 }
-
+function formatMobileNumber(input: string): string {
+  const digits = input.replace(/\D/g, ""); 
+  
+  if (digits.startsWith("92")) {
+    const remaining = digits.slice(2);
+    if (remaining.length === 0) return "+92";
+    if (remaining.length <= 3) return `+92 ${remaining}`;
+    return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
+  }
+  if (digits.startsWith("3") || digits.length > 0) {
+    const combined = "92" + digits;
+    const remaining = combined.slice(2);
+    if (remaining.length === 0) return "+92";
+    if (remaining.length <= 3) return `+92 ${remaining}`;
+    return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
+  }
+  return `+92 ${digits}`.trim();
+}
+function formatCNIC(input: string): string {
+  const digits = input.replace(/\D/g, ""); 
+  if (digits.length <= 5) return digits;
+  if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`;
+}
+function formatPhoneNumber(input: string): string {
+  const digits = input.replace(/\D/g, ""); 
+  if (digits.startsWith("92")) {
+    const remaining = digits.slice(2);
+    if (remaining.length === 0) return "+92";
+    if (remaining.length <= 3) return `+92 ${remaining}`;
+    return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
+  }
+  if (digits.startsWith("3") || digits.length > 0) {
+    const phone = digits.startsWith("92") ? digits : digits;
+    if (!digits.startsWith("92")) {
+      const combined = "92" + digits;
+      const remaining = combined.slice(2);
+      if (remaining.length === 0) return "+92";
+      if (remaining.length <= 3) return `+92 ${remaining}`;
+      return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
+    }
+  }
+  
+  return `+92 ${digits}`.trim();
+}
 export function BasicInfoStep({ value, onChange }: BasicInfoStepProps) {
   const update = (field: keyof BasicInfo, val: string) =>
     onChange({ ...value, [field]: val });
+
+  const handleCNICChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCNIC(e.target.value);
+    update("cnic", formatted);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    update("phoneNumber", formatted);
+  };
+
+  const handlePhoneFocus = () => {
+    if (!value.phoneNumber || value.phoneNumber === "") {
+      update("phoneNumber", "+92 ");
+    }
+  };
+  const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const formatted = formatMobileNumber(e.target.value);
+  update("mobileNumber", formatted);
+};
+
+const handleMobileNumberFocus = () => {
+  if (!value.mobileNumber || value.mobileNumber === "") {
+    update("mobileNumber", "+92 ");
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -79,18 +149,66 @@ export function BasicInfoStep({ value, onChange }: BasicInfoStepProps) {
           Contact Information
         </h2>
         <div className="mt-4 grid gap-4">
-          <TextField
-            label="Mobile Number"
-            required
-            type="tel"
-            value={value.mobileNumber}
-            onChange={(e) => update("mobileNumber", e.target.value)}
-            placeholder="+92 300 1234567"
-          />
+        <TextField
+  label="Mobile Number"
+  required
+  type="tel"
+  value={value.mobileNumber}
+  onChange={handleMobileNumberChange}
+  onFocus={handleMobileNumberFocus}
+  placeholder="+92 300 1234567"
+  maxLength={17}
+/>
           <TextAreaField
             label="How did you hear about this job?"
             value={value.howHeard}
             onChange={(e) => update("howHeard", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div>
+        <h2
+          className="text-xl font-bold text-ink-900"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Professional Information
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="CNIC"
+            value={value.cnic || ""}
+            onChange={handleCNICChange}
+            placeholder="XXXXX-XXXXXXX-X"
+            maxLength={15}
+          />
+          <TextField
+            label="Phone Number"
+            type="tel"
+            value={value.phoneNumber || ""}
+            onChange={handlePhoneChange}
+            onFocus={handlePhoneFocus}
+            placeholder="+92 300 1234567"
+            maxLength={17}
+          />
+          <TextField
+            label="Years of Experience"
+            type="number"
+            value={value.yearsOfExperience || ""}
+            onChange={(e) => update("yearsOfExperience", e.target.value)}
+            placeholder="e.g., 5"
+          />
+          <TextField
+            label="Current Job Title"
+            value={value.currentJobTitle || ""}
+            onChange={(e) => update("currentJobTitle", e.target.value)}
+            placeholder="e.g., Senior Developer"
+          />
+          <TextField
+            label="Current Employer"
+            value={value.currentEmployer || ""}
+            onChange={(e) => update("currentEmployer", e.target.value)}
+            placeholder="e.g., Tech Company Inc"
           />
         </div>
       </div>

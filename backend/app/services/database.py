@@ -147,7 +147,9 @@ def init_db() -> None:
         with conn.cursor() as cur:
             cur.execute(_CREATE_TABLES_SQL)
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS password_hash TEXT;")
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cnic TEXT;")
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS phone_number TEXT;")
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS years_of_experience INT;")
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS current_job_title TEXT;")
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS current_employer TEXT;")
             _seed_team_leads(cur)
-
-
-
