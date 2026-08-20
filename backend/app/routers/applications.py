@@ -20,6 +20,7 @@ POST /applications/{job_id}
                                      jobDescription }, ...]
 """
 import json
+import re
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -85,8 +86,12 @@ async def submit_application(
         )
 
     # ── 4. Upload resume to the job's MinIO bucket ───────────────────────────
-    resume_uuid = str(uuid.uuid4())
-    object_key  = f"resume-{resume_uuid}{ext}"
+    first_name = basic.get("firstName", "") or ""
+    last_name  = basic.get("lastName",  "") or ""
+    full_name  = f"{first_name} {last_name}".strip() or "candidate"
+    name_slug  = re.sub(r"[^a-z0-9]+", "-", full_name.lower()).strip("-")[:40]
+    short_id   = str(uuid.uuid4()).replace("-", "")[:6]
+    object_key = f"{name_slug}-{short_id}{ext}"
 
     upload_file(
         bucket,

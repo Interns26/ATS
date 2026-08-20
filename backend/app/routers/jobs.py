@@ -71,13 +71,18 @@ def _row_to_dict(row) -> dict:
     return d
 
 
-def _bucket_name_for_job(job_id: str) -> str:
+def _bucket_name_for_job(job_id: str, title: str) -> str:
     """
     MinIO bucket names must be 3-63 chars, lowercase, letters/numbers/hyphens only.
-    Use `job-<first-12-chars-of-uuid-without-hyphens>`.
+    Derived from the job title so buckets are human-readable, with a short UUID
+    suffix to guarantee uniqueness.
+    e.g. "Senior Backend Engineer" -> "senior-backend-engineer-a1b2c3"
     """
-    short = job_id.replace("-", "")[:12]
-    return f"job-{short}"
+    import re
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    slug = slug[:40]  # leave room for suffix
+    short = job_id.replace("-", "")[:6]
+    return f"{slug}-{short}"
 
 
 # ── Public & Listing routes (must be defined BEFORE /{job_id}) ───────────────
@@ -201,14 +206,13 @@ def create_job(payload: JobCreate):
 def approve_job(job_id: str):
     """
     Approve a job and create its dedicated MinIO bucket.
-    The bucket name is stored on the job row so applications can find it.
+    The bucket name is derived from the job title and stored on the job row
+    so applications can find it.
     """
-    bucket = _bucket_name_for_job(job_id)
-
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, is_approved FROM jobs WHERE id = %s",
+                "SELECT id, title, is_approved, minio_bucket FROM jobs WHERE id = %s",
                 (job_id,),
             )
             row = cur.fetchone()
@@ -217,6 +221,8 @@ def approve_job(job_id: str):
         raise HTTPException(404, f"Job '{job_id}' not found.")
     if row["is_approved"]:
         return {"job_id": job_id, "minio_bucket": row["minio_bucket"], "message": "Already approved."}
+
+    bucket = _bucket_name_for_job(job_id, row["title"])
 
     # Create the MinIO bucket for this job
     ensure_bucket_exists(bucket)

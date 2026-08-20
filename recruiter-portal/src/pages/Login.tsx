@@ -104,7 +104,7 @@ function Login() {
             <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
               <span className="font-semibold text-purple-600 dark:text-purple-400 block mb-0.5">HR Admin</span>
               <p>Username: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">admin</code></p>
-              <p>Password: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">admin123</code></p>
+              <p>Password: <code className="font-mono bg-slate-100 dark:bg-slate-900 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">admin</code></p>
             </div>
           </div>
         </div>
