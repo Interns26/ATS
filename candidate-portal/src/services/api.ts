@@ -137,9 +137,15 @@ export type CandidateProfile = {
   email?: string;
   first_name?: string;
   last_name?: string;
+  address?: string;
   city?: string;
   state_province?: string;
   mobile_number?: string;
+  how_heard?: string;
+  cnic?: string;
+  years_of_experience?: number;
+  current_job_title?: string;
+  current_employer?: string;
   candidate_id?: string;
 };
 
@@ -223,5 +229,56 @@ export async function fetchCurrentUser(token: string): Promise<CandidateProfile>
   return res.json();
 }
 
+export type CandidateProfileUpdate = {
+  name: string;
+  address?: string;
+  city?: string;
+  state_province?: string;
+  mobile_number?: string;
+  how_heard?: string;
+  cnic?: string;
+  years_of_experience?: number;
+  current_job_title?: string;
+  current_employer?: string;
+};
 
+export async function updateCandidateProfile(
+  token: string,
+  profile: CandidateProfileUpdate
+): Promise<CandidateProfile> {
+  const nameParts = profile.name.trim().split(/\s+/);
+
+  const first_name = nameParts[0] ?? "";
+  const last_name = nameParts.slice(1).join(" ");
+
+  const res = await fetch(`${API_URL}/auth/candidate/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      first_name,
+      last_name,
+      address: profile.address,
+      city: profile.city,
+      state_province: profile.state_province,
+      mobile_number: profile.mobile_number,
+      how_heard: profile.how_heard,
+      cnic: profile.cnic,
+      years_of_experience: profile.years_of_experience,
+      current_job_title: profile.current_job_title,
+      current_employer: profile.current_employer,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(
+      errorData?.detail ?? "Failed to update profile."
+    );
+  }
+
+  return res.json();
+}
 

@@ -45,6 +45,18 @@ class CandidateLoginRequest(BaseModel):
     email: str
     password: str
 
+class CandidateProfileUpdateRequest(BaseModel):
+    first_name: str
+    last_name: str
+    address: str | None = None
+    city: str | None = None
+    state_province: str | None = None
+    mobile_number: str | None = None
+    how_heard: str | None = None
+    cnic: str | None = None
+    years_of_experience: int | None = None
+    current_job_title: str | None = None
+    current_employer: str | None = None
 
 class GoogleLoginRequest(BaseModel):
     credential: str
@@ -302,23 +314,165 @@ def me(authorization: str | None = Header(None)):
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     token = authorization.split(" ", 1)[1]
+
     try:
         payload = decode_token_payload(token)
     except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     role = payload.get("role", "admin")
+
     if role == "candidate":
+        candidate_id = payload.get("candidate_id")
+
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        id,
+                        email,
+                        first_name,
+                        last_name,
+                        address,
+                        city,
+                        state_province,
+                        mobile_number,
+                        how_heard,
+                        cnic,
+                        years_of_experience,
+                        current_job_title,
+                        current_employer
+                    FROM candidates
+                    WHERE id = %s
+                    """,
+                    (candidate_id,),
+                )
+                candidate = cur.fetchone()
+
+        if not candidate:
+            raise HTTPException(
+                status_code=404,
+                detail="Candidate not found",
+            )
+
         return {
-            "username": f"{payload.get('first_name', '')} {payload.get('last_name', '')}".strip() or payload.get("sub"),
+            "username": f"{candidate['first_name']} {candidate['last_name']}".strip(),
             "role": "candidate",
-            "email": payload.get("email"),
-            "first_name": payload.get("first_name"),
-            "last_name": payload.get("last_name"),
-            "city": payload.get("city"),
-            "state_province": payload.get("state_province"),
-            "mobile_number": payload.get("mobile_number"),
-            "candidate_id": payload.get("candidate_id"),
+            "email": candidate["email"],
+            "first_name": candidate["first_name"],
+            "last_name": candidate["last_name"],
+            "address": candidate["address"],
+            "city": candidate["city"],
+            "state_province": candidate["state_province"],
+            "mobile_number": candidate["mobile_number"],
+            "how_heard": candidate["how_heard"],
+            "cnic": candidate["cnic"],
+            "years_of_experience": candidate["years_of_experience"],
+            "current_job_title": candidate["current_job_title"],
+            "current_employer": candidate["current_employer"],
+            "candidate_id": str(candidate["id"]),
         }
 
-    return {"username": payload.get("sub"), "role": "admin"}
+    return {
+        "username": payload.get("sub"),
+        "role": "admin",
+    }
+@router.put("/candidate/profile")
+def update_candidate_profile(
+    payload: CandidateProfileUpdateRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Update the logged-in candidate's profile."""
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+
+            # Find candidate using the email stored in the authentication token
+            cur.execute(
+                """
+                SELECT id
+                FROM candidates
+                WHERE LOWER(email) = LOWER(%s)
+                """,
+                (current_user,),
+            )
+
+            candidate = cur.fetchone()
+
+            if not candidate:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Candidate not found",
+                )
+
+            # Update candidate profile
+            cur.execute(
+                """
+                UPDATE candidates
+                SET
+                    first_name = %s,
+                    last_name = %s,
+                    address = %s,
+                    city = %s,
+                    state_province = %s,
+                    mobile_number = %s,
+                    how_heard = %s,
+                    cnic = %s,
+                    years_of_experience = %s,
+                    current_job_title = %s,
+                    current_employer = %s
+                WHERE id = %s
+                RETURNING
+                    id,
+                    email,
+                    first_name,
+                    last_name,
+                    address,
+                    city,
+                    state_province,
+                    mobile_number,
+                    how_heard,
+                    cnic,
+                    years_of_experience,
+                    current_job_title,
+                    current_employer
+                """,
+                (
+                    payload.first_name,
+                    payload.last_name,
+                    payload.address,
+                    payload.city,
+                    payload.state_province,
+                    payload.mobile_number,
+                    payload.how_heard,
+                    payload.cnic,
+                    payload.years_of_experience,
+                    payload.current_job_title,
+                    payload.current_employer,
+                    candidate["id"],
+                ),
+            )
+
+            updated_candidate = cur.fetchone()
+
+    return {
+        "username": (
+            f"{updated_candidate['first_name']} "
+            f"{updated_candidate['last_name']}"
+        ).strip(),
+        "role": "candidate",
+        "email": updated_candidate["email"],
+        "first_name": updated_candidate["first_name"],
+        "last_name": updated_candidate["last_name"],
+        "address": updated_candidate["address"],
+        "city": updated_candidate["city"],
+        "state_province": updated_candidate["state_province"],
+        "mobile_number": updated_candidate["mobile_number"],
+        "how_heard": updated_candidate["how_heard"],
+        "cnic": updated_candidate["cnic"],
+        "years_of_experience": updated_candidate["years_of_experience"],
+        "current_job_title": updated_candidate["current_job_title"],
+        "current_employer": updated_candidate["current_employer"],
+        "candidate_id": str(updated_candidate["id"]),
+    }

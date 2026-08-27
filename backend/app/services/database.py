@@ -154,4 +154,5 @@ def init_db() -> None:
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS years_of_experience INT;")
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS current_job_title TEXT;")
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS current_employer TEXT;")
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS address TEXT;")
             _seed_team_leads(cur)
