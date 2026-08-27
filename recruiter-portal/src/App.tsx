@@ -14,6 +14,7 @@ import CandidateDetails from "./pages/CandidateDetails";
 import Login from "./pages/Login";
 import Recruiter from "./pages/Recruiter";
 import Approval from "./pages/Approval";
+import Candidates from "./pages/Candidates";
 
 type AppShellProps = {
   darkMode: boolean;
@@ -73,6 +74,15 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
             element={
               <ProtectedRoute allowedRoles={["hr_admin"]}>
                 <Approval />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/candidates"
+            element={
+              <ProtectedRoute allowedRoles={["team_lead", "hr_admin"]}>
+                <Candidates />
               </ProtectedRoute>
             }
           />

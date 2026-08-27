@@ -335,3 +335,72 @@ export async function getTeamLeads(): Promise<TeamLead[]> {
   return response.json();
 }
 
+// ── Candidates API Functions ─────────────────────────────────────────────────
+
+export type CandidateRecord = {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  city: string | null;
+  state_province: string | null;
+  mobile_number: string | null;
+  how_heard: string | null;
+  created_at: string | null;
+  application_id: string | null;
+  submitted_at: string | null;
+  resume_minio_key: string | null;
+  job_title: string | null;
+  job_bucket: string | null;
+  university: string | null;
+  cgpa: string | null;
+  qualification: string | null;
+  subject: string | null;
+  graduation_year: string | null;
+  ats_score: number | null;
+};
+
+export async function getAllCandidates(): Promise<CandidateRecord[]> {
+  const response = await apiFetch("/candidates/");
+  if (!response.ok) throw new Error("Failed to load candidates.");
+  return response.json();
+}
+
+export async function updateCandidate(
+  candidateId: string,
+  data: Partial<{
+    email: string;
+    first_name: string;
+    last_name: string;
+    city: string;
+    state_province: string;
+    mobile_number: string;
+    how_heard: string;
+  }>
+): Promise<void> {
+  const response = await apiFetch(`/candidates/${candidateId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to update candidate.");
+  }
+}
+
+export async function exportCandidatesXlsx(): Promise<Blob> {
+  const response = await apiFetch("/candidates/export");
+  if (!response.ok) throw new Error("Failed to export candidates.");
+  return response.blob();
+}
+
+export async function deleteCandidate(candidateId: string): Promise<void> {
+  const response = await apiFetch(`/candidates/${candidateId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to delete candidate.");
+  }
+}

@@ -15,31 +15,36 @@
 
 ## Executive Overview
 
-The **ATS Resume Analyzer & Talent Acquisition System** is an enterprise-grade recruiting platform designed for **Uworx UK**. It features a modern Candidate Portal for job applications, a comprehensive Recruiter Portal for job posting management, HR approvals, and AI candidate scoring, and a high-performance FastAPI backend backed by PostgreSQL, MinIO Object Storage, and LangGraph AI evaluation pipelines.
+The **ATS Resume Analyzer & Talent Acquisition System** is an enterprise-grade recruiting platform designed for **Uworx UK**. It features a modern Candidate Portal for job applications, a comprehensive Recruiter Portal for job posting management, HR approvals, AI candidate scoring, and a Candidate Database Manager — all backed by a high-performance FastAPI backend, PostgreSQL, MinIO Object Storage, and LangGraph AI evaluation pipelines.
 
 ---
 
 ## Key Features
 
 ### 🏢 Recruiter Portal (`recruiter-portal/`)
-- **ATS Resume Scoring & AI Recommendation**: Scores candidate resumes against job descriptions using LangGraph AI pipelines with default decision bounds (**Interview $\ge 70\%$**, **Consider $\ge 50\%$**, **Reject $< 50\%$**).
-- **Real Candidate & Resume Filtering**: Dynamic constraints filter applicants by **CGPA** (`<=`, `>=`, `=`) and **University** (`UET Lahore`, `FAST NUCES`, `COMSATS`, `Other`, `All`).
-- **Recruiter Job Posting**: Post new job openings (`/recruiter`) capturing job summary, key responsibilities, and required qualifications.
-- **HR Approval Queue & Storage Provisioning**: HR review queue (`/approval`) for approving job postings, which automatically provisions dedicated MinIO storage buckets (`job-xxxx`) for candidate application uploads.
+- **ATS Resume Scoring & AI Recommendation**: Scores candidate resumes against job descriptions using LangGraph AI pipelines with configurable decision bounds (**Interview ≥ 70%**, **Consider ≥ 50%**, **Reject < 50%** by default).
+- **Real Candidate & Resume Filtering**: Dynamic constraints filter applicants by **CGPA** (`<=`, `>=`, `=`) and **University** (dynamically extracted from loaded resumes, plus an `Other` free-text option).
+- **Recruiter Job Posting**: Post new job openings (`/recruiter`) capturing job summary, key responsibilities, and required qualifications with a dedicated Team Lead selector.
+- **HR Approval Queue & Storage Provisioning**: HR review queue (`/approval`) for approving job postings, which automatically provisions dedicated MinIO storage buckets named after the job title (e.g. `senior-backend-engineer-a1b2c3`) for candidate resume uploads.
 - **Automatic Storage Lifecycle**: Deleting a job posting automatically purges its dedicated MinIO storage bucket and all stored resume files.
+- **Candidate Database Manager** (`/candidates`): View, search, edit, and delete all candidate records stored in the system. Export the full candidate dataset as a formatted `.xlsx` workbook (Google Sheets compatible).
+- **Analysis Caching**: ATS results are cached per candidate-email × job in PostgreSQL. Re-running analysis returns cached results instantly; a **Force Re-analyze** option clears the cache first.
 
 ### 👤 Candidate Portal (`candidate-portal/`)
 - **Job Openings Showcase**: Browse live approved job positions with real-time search.
-- **Multi-Step Application Submission**: Interactive application form capturing contact info, qualifications, work experience, and resume upload.
+- **Multi-Step Application Submission**: Interactive 4-step application form capturing contact info, qualifications, work experience, and resume upload (PDF or DOCX).
+- **Email Deduplication**: Submitting an application for an existing email reuses the existing candidate record and updates their personal info, rather than creating a duplicate entry.
 - **Candidate Authentication & Session Persistence**: Email/Password registration and login with session persistence stored in browser `localStorage` (`ats:token`).
 - **Google OAuth 2.0 Sign-In**: One-click candidate registration and sign-in using Google Identity Services (GIS SDK).
 - **Auto Pre-Fill**: Logged-in candidates have their contact information auto-populated into application forms.
 
 ### ⚡ FastAPI Backend (`backend/`)
 - **JWT Role-Based Access Control**: Secure JWT authentication supporting `hr_admin`, `team_lead`, and `candidate` roles.
-- **PostgreSQL Database Schema**: Relational storage for candidates, job postings, applications, qualifications, work experience, and user accounts.
-- **MinIO Object Storage Integration**: Bucket management and streaming file downloads for candidate resumes.
-- **LangGraph AI Resume Evaluation**: Deterministic resume parsing, canonical skill matching, 1-to-1 requirement verification, and holistic fit scoring using Llama 3.3 70B (Groq) with optional Gemini 2.0 Flash integration.
+- **PostgreSQL Database Schema**: Relational storage for candidates, job postings, applications, qualifications, work experience, ATS analysis cache, and team lead accounts.
+- **MinIO Object Storage Integration**: Per-job bucket management and streaming file downloads for candidate resumes. Bucket names are derived from the job title slug for easy identification.
+- **Human-Readable File Naming**: Resume files stored in MinIO are named after the candidate (e.g. `john-smith-a1b2c3.pdf`) for easy identification.
+- **LangGraph AI Resume Evaluation**: Deterministic resume parsing, canonical skill matching, 1-to-1 requirement verification, and holistic fit scoring using Llama 3.3 70B via Groq.
+- **Parallel Processing**: Up to 5 resumes processed simultaneously per analysis run via `ThreadPoolExecutor`.
 
 ---
 
@@ -49,9 +54,18 @@ The AI evaluation engine computes a balanced compatibility score ($0 - 100\%$) f
 
 $$\text{ATS Score} = (\text{Skills Match Ratio} \times 40) + (\text{Requirements Match Ratio} \times 40) + (\text{LLM Score} \times 20)$$
 
-- **Skills Match (40%)**: Compares candidate technical tools with canonical technology synonym recognition (e.g. `React` = `React.js`, `Postgres` = `PostgreSQL`, `FastAPI` = `Python`). Deduplicates skills case-insensitively for score stability.
+- **Skills Match (40%)**: Compares candidate technical tools with canonical technology synonym recognition (e.g. `React` = `React.js`, `Postgres` = `PostgreSQL`). Deduplicates skills case-insensitively for score stability.
 - **Requirements Match (40%)**: Verifies candidate evidence against explicit job responsibilities & qualifications on a strict 1-to-1 bullet basis.
 - **LLM Holistic Fit (20%)**: Evaluates overall project complexity, growth trajectory, and experience alignment.
+
+### Recommendation Thresholds
+| Score | Recommendation |
+| :--- | :--- |
+| ≥ 70% | **Interview** |
+| 50% – 69% | **Consider** |
+| < 50% | **Reject** |
+
+Thresholds are configurable per analysis run from the Home page.
 
 ---
 
@@ -59,11 +73,12 @@ $$\text{ATS Score} = (\text{Skills Match Ratio} \times 40) + (\text{Requirements
 
 | Domain | Technologies |
 | :--- | :--- |
-| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS, Tailwind CSS, Lucide Icons |
+| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS, TailwindCSS (candidate portal), Lucide Icons |
 | **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2 |
 | **Authentication** | JWT (`python-jose`), Bcrypt (`passlib`), Google Identity Services (`google-auth`) |
 | **Database & Storage** | PostgreSQL (`psycopg2`), MinIO Python SDK |
-| **AI Workflow** | LangGraph, Groq LLM API (Llama 3.3 70B), Google GenAI SDK (Gemini 2.0 Flash), PyMuPDF / pdfplumber |
+| **AI Workflow** | LangGraph, Groq LLM API (Llama 3.3 70B), PyMuPDF / pdfplumber |
+| **Export** | `openpyxl` (Excel .xlsx generation) |
 | **DevOps & Containers** | Docker, Docker Compose |
 
 ---
@@ -75,12 +90,15 @@ ATS/
 ├── backend/
 │   ├── app/
 │   │   ├── routers/
-│   │   │   ├── analyze.py        # LangGraph AI scoring endpoint
-│   │   │   ├── applications.py   # Application submission endpoint
-│   │   │   ├── auth.py           # JWT, Candidate & Google OAuth endpoints
+│   │   │   ├── analyze.py        # LangGraph AI scoring endpoint + cache management
+│   │   │   ├── applications.py   # Candidate application submission (email-deduplicating)
+│   │   │   ├── auth.py           # JWT, Team Lead, Candidate & Google OAuth endpoints
+│   │   │   ├── buckets.py        # MinIO bucket listing
+│   │   │   ├── candidates.py     # Candidate database CRUD + .xlsx export
+│   │   │   ├── documents.py      # Text extraction from PDF/DOCX (for JD upload)
 │   │   │   ├── jobs.py           # Public, Recruiter & HR Approval job endpoints
 │   │   │   ├── resumes.py        # MinIO resume retrieval & downloads
-│   │   │   └── storage.py        # MinIO bucket management
+│   │   │   └── storage.py        # MinIO file management (default bucket)
 │   │   ├── services/
 │   │   │   ├── auth.py           # Password hashing & JWT token generation
 │   │   │   ├── database.py       # PostgreSQL connection pool & schema init
@@ -93,8 +111,8 @@ ATS/
 │
 ├── candidate-portal/
 │   ├── src/
-│   │   ├── components/           # Header, GoogleAuthButton, LoginModal, RegisterModal
-│   │   ├── pages/                # JobListings, JobDetail, ApplicationForm, LoginPage
+│   │   ├── components/           # Header, GoogleAuthButton, LoginModal, RegisterModal, form steps
+│   │   ├── pages/                # JobListings, JobDetail, ApplicationForm, LoginPage, EditProfile
 │   │   ├── services/             # API services for auth & job applications
 │   │   └── lib/                  # JWT token storage helpers (localStorage ats:token)
 │   ├── .env.example
@@ -103,8 +121,8 @@ ATS/
 ├── recruiter-portal/
 │   ├── src/
 │   │   ├── components/           # Navbar, Button, Card, Select, CircularProgress, LoadingOverlay
-│   │   ├── pages/                # Home (ATS Analyzer), Recruiter, Approval, CandidateDetails, Results
-│   │   └── services/             # API services for jobs, buckets & resume analysis
+│   │   ├── pages/                # Home (ATS Analyzer), Recruiter, Approval, Candidates, CandidateDetails, Results
+│   │   └── services/             # API services for jobs, buckets, resumes, candidates & analysis
 │   └── package.json
 │
 ├── docker-compose.yml
@@ -152,7 +170,7 @@ ADMIN_PASSWORD_HASH=$2b$12$j0t0VP6Q58AtwCj47PJGVerSuVZyKMBg.4WZaohCgV78H.2ayG0Ye
 
 # AI Provider API Keys
 GROQ_API_KEY=gsk_your_groq_api_key_here
-GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
 ```
 
 ### 2. Candidate Portal Environment (`candidate-portal/.env`)
@@ -160,7 +178,7 @@ GOOGLE_API_KEY=your_google_api_key_here
 Create `candidate-portal/.env`:
 
 ```env
-VITE_GOOGLE_CLIENT_ID=820758112006-iv6pc1p0nlvga2385heq970rjjg9g52g.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
 ```
 
 ---
@@ -193,7 +211,7 @@ python -m venv .venv
 # Linux/macOS:
 source .venv/bin/activate
 
-# Install dependencies
+# Install dependencies (includes openpyxl for .xlsx export)
 pip install -r requirements.txt
 
 # Start FastAPI dev server
@@ -206,21 +224,7 @@ FastAPI server endpoints:
 
 ---
 
-### Step 3: Set Up Candidate Portal
-
-In a new terminal:
-
-```bash
-cd candidate-portal
-npm install
-npm run dev
-```
-
-Candidate Portal will open at `http://localhost:5173`.
-
----
-
-### Step 4: Set Up Recruiter Portal
+### Step 3: Set Up Recruiter Portal
 
 In a new terminal:
 
@@ -230,7 +234,21 @@ npm install
 npm run dev
 ```
 
-Recruiter Portal will open at `http://localhost:5174`.
+Recruiter Portal will open at `http://localhost:5173`.
+
+---
+
+### Step 4: Set Up Candidate Portal
+
+In a new terminal:
+
+```bash
+cd candidate-portal
+npm install
+npm run dev
+```
+
+Candidate Portal will open at `http://localhost:5174`.
 
 ---
 
@@ -239,38 +257,78 @@ Recruiter Portal will open at `http://localhost:5174`.
 ### 🔐 Auth Endpoints (`/auth`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/auth/login` | Recruiter/Admin Login |
-| `POST` | `/auth/candidate/register` | Candidate Email/Password Registration |
-| `POST` | `/auth/candidate/login` | Candidate Email/Password Login |
-| `POST` | `/auth/google` | Candidate Google OAuth 2.0 Sign-In |
-| `GET` | `/auth/me` | Fetch Current Authenticated User Profile |
+| `POST` | `/auth/login` | HR Admin or Team Lead login |
+| `POST` | `/auth/candidate/register` | Candidate email/password registration |
+| `POST` | `/auth/candidate/login` | Candidate email/password login |
+| `POST` | `/auth/google` | Candidate Google OAuth 2.0 sign-in |
+| `GET` | `/auth/me` | Fetch current authenticated user profile |
+| `GET` | `/auth/team-leads` | List all team leads (for recruiter dropdown) |
 
 ### 💼 Jobs Endpoints (`/jobs`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/jobs/` | List All Approved Jobs (Public) |
-| `GET` | `/jobs/pending` | List Unapproved Jobs (HR Queue) |
-| `GET` | `/jobs/all` | List All Jobs (Recruiter Portal) |
-| `GET` | `/jobs/{job_id}` | Fetch Single Approved Job Details |
-| `POST` | `/jobs/` | Create New Job & Provision MinIO Bucket |
-| `PATCH` | `/jobs/{job_id}/approve` | HR Approve Job & Activate Bucket |
-| `DELETE` | `/jobs/{job_id}` | Delete Job & Purge MinIO Bucket |
+| `GET` | `/jobs/` | List all approved jobs (public) |
+| `GET` | `/jobs/pending` | List unapproved jobs (HR queue) |
+| `GET` | `/jobs/all` | List all jobs (recruiter portal) |
+| `GET` | `/jobs/{job_id}` | Fetch single approved job details |
+| `POST` | `/jobs/` | Create new job posting (pending approval) |
+| `PATCH` | `/jobs/{job_id}/approve` | HR approve job & provision MinIO bucket |
+| `PUT` | `/jobs/{job_id}` | Update job posting details |
+| `DELETE` | `/jobs/{job_id}` | Delete job & purge MinIO bucket |
 
-### 📄 Applications & Resumes (`/applications`, `/resumes`, `/analyze`)
+### 📄 Applications, Resumes & Analysis
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/applications/{job_id}` | Submit Candidate Application & Upload Resume |
-| `GET` | `/resumes/{bucket}` | List Resumes Enriched with Candidate Contact & Qualifications |
-| `GET` | `/resumes/{bucket}/download/{key}` | Stream Resume File Download |
-| `POST` | `/analyze/{bucket}` | Run LangGraph AI Compatibility Analysis |
+| `POST` | `/applications/{job_id}` | Submit candidate application & upload resume |
+| `GET` | `/resumes/{bucket}` | List resumes enriched with candidate info & ATS scores |
+| `GET` | `/resumes/{bucket}/download/{key}` | Stream resume file download |
+| `POST` | `/analyze/{bucket}?force=false` | Run LangGraph AI analysis (uses cache unless `force=true`) |
+| `DELETE` | `/analyze/cache/{bucket}` | Clear cached ATS results for a job bucket |
+| `POST` | `/documents/extract-text` | Extract plain text from a PDF or DOCX file |
+
+### 👥 Candidates Endpoints (`/candidates`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/candidates/` | List all candidates with enriched application & ATS data |
+| `PUT` | `/candidates/{id}` | Update a candidate's personal information |
+| `DELETE` | `/candidates/{id}` | Delete a candidate and all their associated data |
+| `GET` | `/candidates/export` | Download all candidate data as a formatted `.xlsx` workbook |
+
+### 🗂️ Storage & Buckets
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/buckets/` | List all MinIO buckets |
+| `GET` | `/storage/list` | List files in default bucket |
+| `GET` | `/storage/download/{key}` | Download file from default bucket |
+| `DELETE` | `/storage/{key}` | Delete file from default bucket |
+
+---
+
+## Role-Based Access Control
+
+| Role | Accessible Routes | Key Responsibilities |
+| :--- | :--- | :--- |
+| `hr_admin` | `/approval`, `/recruiter`, `/candidates` | Review pending jobs, approve postings (creates MinIO bucket), manage candidate database |
+| `team_lead` | `/`, `/recruiter`, `/results`, `/candidate/:id`, `/candidates` | Create job postings, upload/filter resumes, run AI ATS analysis, export candidate data |
+| `candidate` | Candidate Portal | Browse jobs, submit multi-step applications, manage profile |
 
 ---
 
 ## Default Credentials
 
-- **Recruiter / Admin Login**:
-  - **Username**: `admin`
-  - **Password**: `admin`
+### HR Admin
+| Field | Value |
+| :--- | :--- |
+| **Username** | `admin` |
+| **Password** | `admin` |
+
+### Team Leads (seeded automatically on first startup)
+| Name | Username | Password |
+| :--- | :--- | :--- |
+| Sarah Jenkins | `sarah` | `password123` |
+| Alex Morgan | `alex` | `password123` |
+| David Chen | `david` | `password123` |
+| Emily Taylor | `emily` | `password123` |
 
 ---
 

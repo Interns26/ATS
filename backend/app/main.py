@@ -14,6 +14,7 @@ from app.routers import analyze
 from app.routers import documents
 from app.routers import jobs
 from app.routers import applications
+from app.routers import candidates
 
 app = FastAPI(
     title="ATS - MinIO Storage Service"
@@ -60,11 +61,12 @@ app.include_router(jobs.router)
 app.include_router(applications.router)
 
 # ── Protected routers (JWT required) ────────────────────────────────────────
-app.include_router(storage.router,   dependencies=[Depends(get_current_user)])
-app.include_router(buckets.router,   dependencies=[Depends(get_current_user)])
-app.include_router(resumes.router,   dependencies=[Depends(get_current_user)])
-app.include_router(analyze.router,   dependencies=[Depends(get_current_user)])
-app.include_router(documents.router, dependencies=[Depends(get_current_user)])
+app.include_router(storage.router,    dependencies=[Depends(get_current_user)])
+app.include_router(buckets.router,    dependencies=[Depends(get_current_user)])
+app.include_router(resumes.router,    dependencies=[Depends(get_current_user)])
+app.include_router(analyze.router,    dependencies=[Depends(get_current_user)])
+app.include_router(documents.router,  dependencies=[Depends(get_current_user)])
+app.include_router(candidates.router, dependencies=[Depends(get_current_user)])
 
 
 @app.get("/health")

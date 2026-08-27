@@ -41,6 +41,9 @@ function Navbar({
               <Link to="/recruiter" className="transition">
                 Recruiter
               </Link>
+              <Link to="/candidates" className="transition">
+                Candidates
+              </Link>
             </>
           ) : (
             <>
@@ -52,6 +55,9 @@ function Navbar({
               </Link>
               <Link to="/results" className="transition">
                 Results
+              </Link>
+              <Link to="/candidates" className="transition">
+                Candidates
               </Link>
             </>
           )}

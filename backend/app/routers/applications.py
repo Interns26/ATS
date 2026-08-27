@@ -106,32 +106,75 @@ async def submit_application(
     with get_connection() as conn:
         with conn.cursor() as cur:
 
-            # candidates
+            # candidates — reuse existing record if the email is already in the DB
+            email_val = basic.get("email", "").strip().lower()
             cur.execute(
-                """
-                INSERT INTO candidates
-                  (email, first_name, last_name, city, state_province,
-                   mobile_number, how_heard, cnic, phone_number,
-                   years_of_experience, current_job_title, current_employer)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-                """,
-                (
-                    basic.get("email", ""),
-                    basic.get("firstName", ""),
-                    basic.get("lastName", ""),
-                    basic.get("city"),
-                    basic.get("stateProvince"),
-                    basic.get("mobileNumber"),
-                    basic.get("howHeard"),
-                    basic.get("cnic"),
-                    basic.get("phoneNumber"),
-                    basic.get("yearsOfExperience"),
-                    basic.get("currentJobTitle"),
-                    basic.get("currentEmployer"),
-                ),
+                "SELECT id FROM candidates WHERE LOWER(email) = %s LIMIT 1",
+                (email_val,),
             )
-            candidate_id = str(cur.fetchone()["id"])
+            existing_cand = cur.fetchone()
+
+            if existing_cand:
+                # Email already on file — update personal info and reuse the id
+                candidate_id = str(existing_cand["id"])
+                cur.execute(
+                    """
+                    UPDATE candidates
+                    SET first_name          = %s,
+                        last_name           = %s,
+                        city                = %s,
+                        state_province      = %s,
+                        mobile_number       = %s,
+                        how_heard           = %s,
+                        cnic                = COALESCE(%s, cnic),
+                        phone_number        = COALESCE(%s, phone_number),
+                        years_of_experience = COALESCE(%s, years_of_experience),
+                        current_job_title   = COALESCE(%s, current_job_title),
+                        current_employer    = COALESCE(%s, current_employer)
+                    WHERE id = %s
+                    """,
+                    (
+                        basic.get("firstName", ""),
+                        basic.get("lastName", ""),
+                        basic.get("city"),
+                        basic.get("stateProvince"),
+                        basic.get("mobileNumber"),
+                        basic.get("howHeard"),
+                        basic.get("cnic"),
+                        basic.get("phoneNumber"),
+                        basic.get("yearsOfExperience"),
+                        basic.get("currentJobTitle"),
+                        basic.get("currentEmployer"),
+                        candidate_id,
+                    ),
+                )
+            else:
+                # New email — insert a fresh candidate row
+                cur.execute(
+                    """
+                    INSERT INTO candidates
+                      (email, first_name, last_name, city, state_province,
+                       mobile_number, how_heard, cnic, phone_number,
+                       years_of_experience, current_job_title, current_employer)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        email_val,
+                        basic.get("firstName", ""),
+                        basic.get("lastName", ""),
+                        basic.get("city"),
+                        basic.get("stateProvince"),
+                        basic.get("mobileNumber"),
+                        basic.get("howHeard"),
+                        basic.get("cnic"),
+                        basic.get("phoneNumber"),
+                        basic.get("yearsOfExperience"),
+                        basic.get("currentJobTitle"),
+                        basic.get("currentEmployer"),
+                    ),
+                )
+                candidate_id = str(cur.fetchone()["id"])
 
             # applications
             cur.execute(
