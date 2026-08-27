@@ -3,18 +3,20 @@
  */
 
 import { useState, useEffect } from "react";
-import { Briefcase, LogIn, LogOut, User, UserPlus, LayoutDashboard } from "lucide-react";
+import { Briefcase, LogIn, LogOut, User, UserPlus, LayoutDashboard, Pencil  } from "lucide-react";
 import { LoginModal } from "./LoginModal";
 import { RegisterModal } from "./RegisterModal";
 import { getToken, clearToken } from "../lib/auth";
 import { fetchCurrentUser } from "../services/api";
 import type { CandidateProfile } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export function Header() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [user, setUser] = useState<CandidateProfile | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = getToken();
@@ -27,11 +29,15 @@ export function Header() {
       setCheckingAuth(false);
     }
   }, []);
+   
 
   const handleLogout = () => {
     clearToken();
     setUser(null);
   };
+ const handleEditProfile = () => {
+  navigate("/profile");
+};
 
   return (
     <>
@@ -74,7 +80,14 @@ export function Header() {
                       Recruiter Dashboard
                     </a>
                   )}
-
+ <button
+  onClick={handleEditProfile}
+  title="Edit"
+  className="flex items-center gap-1.5 rounded-lg border border-ink-200 px-3 py-2 text-xs font-medium text-ink-600 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+>
+  <Pencil size={14} />
+  Edit Profile
+</button>
                   <button
                     onClick={handleLogout}
                     title="Sign Out"
@@ -83,6 +96,8 @@ export function Header() {
                     <LogOut size={14} />
                     Logout
                   </button>
+
+                  
                 </>
               ) : (
                 <>

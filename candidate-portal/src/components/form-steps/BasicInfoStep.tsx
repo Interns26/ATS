@@ -74,9 +74,10 @@ export function BasicInfoStep({ value, onChange }: BasicInfoStepProps) {
     }
   };
   const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const formatted = formatMobileNumber(e.target.value);
-  update("mobileNumber", formatted);
-};
+    const formatted = formatMobileNumber(e.target.value);
+    // Update both mobileNumber and phoneNumber to keep them in sync
+    onChange({ ...value, mobileNumber: formatted, phoneNumber: formatted });
+  };
 
 const handleMobileNumberFocus = () => {
   if (!value.mobileNumber || value.mobileNumber === "") {
@@ -183,13 +184,13 @@ const handleMobileNumberFocus = () => {
             maxLength={15}
           />
           <TextField
-            label="Phone Number"
+            label="Mobile Number"
             type="tel"
             value={value.phoneNumber || ""}
-            onChange={handlePhoneChange}
-            onFocus={handlePhoneFocus}
+            onChange={(e) => update("phoneNumber", e.target.value)}
             placeholder="+92 300 1234567"
             maxLength={17}
+            disabled
           />
           <TextField
             label="Years of Experience"

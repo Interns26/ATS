@@ -7,6 +7,7 @@ import { JobListings } from "./pages/JobListings";
 import { JobDetail } from "./pages/JobDetail";
 import { ApplicationForm } from "./pages/ApplicationForm";
 import { LoginPage } from "./pages/LoginPage";
+import {EditProfile} from "./pages/EditProfile"
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/jobs/:jobId" element={<JobDetail />} />
         <Route path="/apply/:jobId" element={<ApplicationForm />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile" element={<EditProfile />} />
       </Routes>
     </BrowserRouter>
   );
