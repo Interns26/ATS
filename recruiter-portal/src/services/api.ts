@@ -48,6 +48,7 @@ export type ATSResult = {
 
 export type CandidateResult = {
   filename: string;
+  email?: string;
   resume: ParsedResume;
   ats: ATSResult;
 };
@@ -236,6 +237,7 @@ export type Job = {
   requirements?: string[];
   opening_date?: string;
   closing_date?: string;
+  num_positions?: number;
   is_approved?: boolean;
   minio_bucket?: string;
   created_at?: string;
@@ -249,6 +251,7 @@ export async function createJob(jobData: {
   description?: string;
   responsibilities?: string[];
   requirements?: string[];
+  num_positions?: number;
 }): Promise<{ job_id: string; is_approved: boolean }> {
   const response = await apiFetch("/jobs/", {
     method: "POST",
@@ -309,6 +312,7 @@ export async function updateJob(
     requirements?: string[];
     location?: string;
     employment_type?: string;
+    num_positions?: number;
   }
 ): Promise<void> {
   const response = await apiFetch(`/jobs/${jobId}`, {
@@ -403,4 +407,21 @@ export async function deleteCandidate(candidateId: string): Promise<void> {
     const detail = await response.json().catch(() => null);
     throw new Error(detail?.detail ?? "Failed to delete candidate.");
   }
+}
+
+export async function sendBatchEmails(
+  emails: string[],
+  subject: string,
+  body: string
+): Promise<{ message: string; recipients: number }> {
+  const response = await apiFetch("/candidates/email-batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ emails, subject, body }),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to send batch emails.");
+  }
+  return response.json();
 }

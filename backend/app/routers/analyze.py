@@ -16,7 +16,7 @@ import tempfile
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -37,6 +37,7 @@ class AnalyzeRequest(BaseModel):
 
 class CandidateResult(BaseModel):
     filename: str
+    email: Optional[str] = None
     resume: dict
     ats: dict
 
@@ -156,6 +157,7 @@ def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description:
 
                     return CandidateResult(
                         filename=object_key,
+                        email=candidate_email,
                         resume=parsed,
                         ats=ats,
                     )
@@ -217,6 +219,7 @@ def _run_workflow_for_resume(bucket_name: str, object_key: str, job_description:
 
     return CandidateResult(
         filename=object_key,
+        email=candidate_email,
         resume=resume_dict,
         ats=ats_dict,
     )

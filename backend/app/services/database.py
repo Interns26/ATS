@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     requirements    JSONB,
     opening_date    DATE,
     closing_date    DATE,
+    num_positions   INTEGER NOT NULL DEFAULT 1,
     is_approved     BOOLEAN DEFAULT FALSE,
     minio_bucket    TEXT,
     created_at      TIMESTAMPTZ DEFAULT now()
@@ -146,6 +147,7 @@ def init_db() -> None:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(_CREATE_TABLES_SQL)
+            cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS num_positions INTEGER NOT NULL DEFAULT 1;")
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS password_hash TEXT;")
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cnic TEXT;")
             cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS phone_number TEXT;")

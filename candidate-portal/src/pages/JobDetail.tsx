@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Calendar, Users } from "lucide-react";
 import { Header } from "../components/Header";
 import { fetchJob } from "../services/api";
 import { formatDate, getJobStatus } from "../lib/jobStatus";
@@ -111,6 +111,10 @@ export function JobDetail() {
               <span className="flex items-center gap-1.5">
                 <Calendar size={15} />
                 Closes {formatDate(job.closingDate)}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users size={15} />
+                {job.numPositions} {job.numPositions === 1 ? "Position" : "Positions"}
               </span>
             </div>
           </div>

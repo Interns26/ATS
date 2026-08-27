@@ -78,6 +78,7 @@ function toJob(raw: Record<string, any>): Job {
     openingDate: raw.opening_date ?? "",
     closingDate: raw.closing_date ?? "",
     department: raw.department ?? "",
+    numPositions: raw.num_positions ?? 1,
     description: raw.description ?? "",
     responsibilities: parseArrayField(raw.responsibilities),
     requirements: parseArrayField(raw.requirements),

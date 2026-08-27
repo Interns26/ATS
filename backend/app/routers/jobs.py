@@ -18,7 +18,7 @@ import json
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 from app.dependencies import get_current_user
@@ -41,6 +41,7 @@ class JobCreate(BaseModel):
     requirements: List[str] = []
     opening_date: Optional[str] = None      # ISO date string, e.g. "2026-08-01"
     closing_date: Optional[str] = None
+    num_positions: int = Field(default=1, ge=1)
 
 
 class JobUpdate(BaseModel):
@@ -53,6 +54,7 @@ class JobUpdate(BaseModel):
     requirements: Optional[List[str]] = None
     opening_date: Optional[str] = None
     closing_date: Optional[str] = None
+    num_positions: Optional[int] = Field(default=None, ge=1)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,7 +98,7 @@ def list_approved_jobs():
                 """
                 SELECT id, title, location, employment_type, department,
                        description, responsibilities, requirements,
-                       opening_date, closing_date, minio_bucket, created_at
+                       opening_date, closing_date, num_positions, minio_bucket, created_at
                 FROM jobs
                 WHERE is_approved = TRUE
                 ORDER BY created_at DESC
@@ -115,7 +117,7 @@ def list_pending_jobs():
                 """
                 SELECT id, title, location, employment_type, department,
                        description, responsibilities, requirements,
-                       opening_date, closing_date, created_at
+                       opening_date, closing_date, num_positions, created_at
                 FROM jobs
                 WHERE is_approved = FALSE
                 ORDER BY created_at DESC
@@ -134,7 +136,7 @@ def list_all_jobs():
                 """
                 SELECT id, title, location, employment_type, department,
                        description, responsibilities, requirements,
-                       opening_date, closing_date, is_approved, minio_bucket, created_at
+                       opening_date, closing_date, num_positions, is_approved, minio_bucket, created_at
                 FROM jobs
                 ORDER BY created_at DESC
                 """
@@ -152,7 +154,7 @@ def get_job(job_id: str):
                 """
                 SELECT id, title, location, employment_type, department,
                        description, responsibilities, requirements,
-                       opening_date, closing_date, minio_bucket, created_at
+                       opening_date, closing_date, num_positions, minio_bucket, created_at
                 FROM jobs
                 WHERE id = %s AND is_approved = TRUE
                 """,
@@ -180,8 +182,8 @@ def create_job(payload: JobCreate):
                 INSERT INTO jobs
                   (id, title, location, employment_type, department, description,
                    responsibilities, requirements, opening_date, closing_date,
-                   is_approved, minio_bucket)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   num_positions, is_approved, minio_bucket)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     job_id,
@@ -194,6 +196,7 @@ def create_job(payload: JobCreate):
                     json.dumps(payload.requirements),
                     payload.opening_date or None,
                     payload.closing_date or None,
+                    payload.num_positions,
                     False,  # Set to unapproved (False) by default
                     None,   # MinIO bucket is provisioned when approved by HR Admin
                 ),
@@ -299,6 +302,9 @@ def update_job(job_id: str, payload: JobUpdate):
             if payload.closing_date is not None:
                 update_fields.append("closing_date = %s")
                 values.append(payload.closing_date or None)
+            if payload.num_positions is not None:
+                update_fields.append("num_positions = %s")
+                values.append(payload.num_positions)
 
             if not update_fields:
                 raise HTTPException(400, "No fields provided to update.")

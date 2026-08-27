@@ -2,12 +2,13 @@
  * Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.
  */
 
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import Card from "../components/Card/Card";
 import Button from "../components/Button/Button";
 
-import type { AnalyzeResponse, CandidateResult } from "../services/api";
+import { sendBatchEmails, type AnalyzeResponse, type CandidateResult } from "../services/api";
 import {
   ANALYSIS_STORAGE_KEY,
   THRESHOLDS_STORAGE_KEY,
@@ -61,12 +62,122 @@ function loadThresholds(state: unknown): Thresholds {
   return DEFAULT_THRESHOLDS;
 }
 
+function EmailModal({
+  selectedCount,
+  onClose,
+  onSend,
+}: {
+  selectedCount: number;
+  onClose: () => void;
+  onSend: (subject: string, body: string) => Promise<void>;
+}) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!subject.trim() || !body.trim()) {
+      setError("Please fill in both subject and body.");
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      await onSend(subject, body);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send emails.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-700">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+              Compose Email
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Sending to {selectedCount} selected candidate{selectedCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-2xl leading-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSend} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-500 dark:text-slate-400">
+              Subject
+            </label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="e.g. Interview Invitation"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-500 dark:text-slate-400">
+              Message Body
+            </label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Type your message here..."
+              rows={6}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={sending}
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {sending ? "Sending..." : "Send Email"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Results() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const analysis = loadAnalysis(location.state);
   const thresholds = loadThresholds(location.state);
+
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   if (!analysis || analysis.results.length === 0) {
     return (
@@ -103,10 +214,40 @@ function Results() {
     });
   }
 
+  function handleSelectAllInterview() {
+    const interviewEmails = candidates
+      .filter((c) => statusFor(c.ats.ats_score, thresholds) === "Interview" && c.email)
+      .map((c) => c.email as string);
+    setSelectedEmails(interviewEmails);
+  }
 
+  function toggleEmailSelection(email?: string) {
+    if (!email) return;
+    setSelectedEmails((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+    );
+  }
+
+  async function handleSendBatchEmails(subject: string, body: string) {
+    try {
+      const res = await sendBatchEmails(selectedEmails, subject, body);
+      alert(res.message);
+      setSelectedEmails([]);
+    } catch (error) {
+      throw error;
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <>
+      {showEmailModal && (
+        <EmailModal
+          selectedCount={selectedEmails.length}
+          onClose={() => setShowEmailModal(false)}
+          onSend={handleSendBatchEmails}
+        />
+      )}
+      <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">
           ATS Analysis Results
@@ -124,6 +265,22 @@ function Results() {
             were skipped.
           </p>
         )}
+
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <button
+            onClick={handleSelectAllInterview}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            Select "Interview" Candidates
+          </button>
+          <button
+            onClick={() => setShowEmailModal(true)}
+            disabled={selectedEmails.length === 0}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            Email Selected ({selectedEmails.length})
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -155,6 +312,9 @@ function Results() {
             <table className="min-w-full">
             <thead>
               <tr className="border-b table-header">
+                <th className="p-3 text-left w-12">
+                  <span className="sr-only">Select</span>
+                </th>
                 <th className="p-3 text-left">Rank</th>
                 <th className="p-3 text-left">Candidate</th>
                 <th className="p-3 text-left">ATS Score</th>
@@ -170,11 +330,31 @@ function Results() {
                 return (
                   <tr
                     key={candidate.filename}
-                    className="border-b table-row"
+                    className={`border-b table-row ${
+                      candidate.email && selectedEmails.includes(candidate.email)
+                        ? "bg-blue-50/50 dark:bg-blue-900/20"
+                        : ""
+                    }`}
                   >
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={!!(candidate.email && selectedEmails.includes(candidate.email))}
+                        onChange={() => toggleEmailSelection(candidate.email)}
+                        disabled={!candidate.email}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="p-3">{index + 1}</td>
 
-                    <td className="p-3">{candidateName(candidate)}</td>
+                    <td className="p-3">
+                      {candidateName(candidate)}
+                      {candidate.email && (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {candidate.email}
+                        </div>
+                      )}
+                    </td>
 
                     <td className="p-3 font-semibold">
                       {candidate.ats.ats_score}
@@ -206,9 +386,8 @@ function Results() {
           </table>
         </div>
       </Card>
-
-
     </div>
+    </>
   );
 }
 

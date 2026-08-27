@@ -75,6 +75,10 @@ function DetailsModal({ job, onClose }: { job: Job; onClose: () => void }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <p className="text-slate-400 dark:text-slate-500 mb-1">Number of Positions</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">{job.num_positions ?? 1}</p>
+            </div>
+            <div>
               <p className="text-slate-400 dark:text-slate-500 mb-1">Employment Type</p>
               <p className="font-semibold text-slate-800 dark:text-slate-100">{job.employment_type || "Full-time"}</p>
             </div>
@@ -180,6 +184,7 @@ export default function Approval() {
                 <th className="px-4 py-3 font-semibold w-8"></th>
                 <th className="px-4 py-3 font-semibold">Job Title</th>
                 <th className="px-4 py-3 font-semibold">Department</th>
+                <th className="px-4 py-3 font-semibold">Positions</th>
                 <th className="px-4 py-3 font-semibold">Description</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Details</th>
@@ -188,13 +193,13 @@ export default function Approval() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                     Loading jobs...
                   </td>
                 </tr>
               ) : jobs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                     {activeTab === "pending" ? "No jobs currently pending approval." : "No jobs found."}
                   </td>
                 </tr>
@@ -218,6 +223,7 @@ export default function Approval() {
                       {job.title}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{job.department || "General"}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{job.num_positions ?? 1}</td>
                     <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
                       {job.description || "-"}
                     </td>
@@ -254,6 +260,12 @@ export default function Approval() {
                 <p className="text-slate-400 dark:text-slate-500 mb-1">Department</p>
                 <p className="font-semibold text-slate-800 dark:text-slate-100">
                   {selectedJob.department || "General"}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-400 dark:text-slate-500 mb-1">Number of Positions</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100">
+                  {selectedJob.num_positions ?? 1}
                 </p>
               </div>
               <div className="col-span-2">

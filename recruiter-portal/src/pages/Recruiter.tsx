@@ -12,6 +12,7 @@ type Job = {
   name: string;
   tl: string;
   description: string;
+  numPositions: number;
   responsibilities?: string[];
   requirements?: string[];
   status: JobStatus;
@@ -82,6 +83,10 @@ function DetailsModal({ job, onClose }: { job: Job; onClose: () => void }) {
             <p className="font-semibold text-slate-800 dark:text-slate-100">{job.tl}</p>
           </div>
           <div>
+            <p className="text-slate-400 dark:text-slate-500 mb-1">Number of Positions</p>
+            <p className="font-semibold text-slate-800 dark:text-slate-100">{job.numPositions}</p>
+          </div>
+          <div>
             <p className="text-slate-400 dark:text-slate-500 mb-1 font-semibold">Summary</p>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{job.description || "-"}</p>
           </div>
@@ -135,11 +140,13 @@ function EditModal({
     description: string;
     responsibilities: string[];
     requirements: string[];
+    numPositions: number;
   }) => Promise<void>;
 }) {
   const [name, setName] = useState(job.name);
   const [tl, setTl] = useState(job.tl || (teamLeads[0]?.name ?? "General"));
   const [description, setDescription] = useState(job.description);
+  const [numPositions, setNumPositions] = useState(job.numPositions || 1);
   const [responsibilitiesText, setResponsibilitiesText] = useState((job.responsibilities || []).join("\n"));
   const [requirementsText, setRequirementsText] = useState((job.requirements || []).join("\n"));
   const [saving, setSaving] = useState(false);
@@ -159,6 +166,7 @@ function EditModal({
         name,
         tl,
         description,
+        numPositions,
         responsibilities: respList,
         requirements: reqList,
       });
@@ -222,6 +230,19 @@ function EditModal({
                 ))
               )}
             </select>
+          </div>
+          <div>
+            <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">
+              Number of Positions
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={numPositions}
+              onChange={(e) => setNumPositions(Math.max(1, Number(e.target.value)))}
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 dark:text-slate-100"
+              required
+            />
           </div>
           <div>
             <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">
@@ -295,6 +316,7 @@ export default function Recruiter() {
     summary: "",
     responsibilities: "",
     requirements: "",
+    numPositions: 1,
   });
   const [detailsJob, setDetailsJob] = useState<Job | null>(null);
   const [editJob, setEditJob] = useState<Job | null>(null);
@@ -309,6 +331,7 @@ export default function Recruiter() {
         name: item.title,
         tl: item.department || "General",
         description: item.description || "",
+        numPositions: item.num_positions ?? 1,
         responsibilities: Array.isArray(item.responsibilities)
           ? item.responsibilities
           : typeof item.responsibilities === "string"
@@ -359,16 +382,18 @@ export default function Recruiter() {
         title: newJob.name,
         department: newJob.tl,
         description: newJob.summary,
+        num_positions: newJob.numPositions,
         responsibilities: respList,
         requirements: reqList,
       });
       alert("Job created successfully! It is now pending HR approval.");
       setNewJob({
         name: "",
-        tl: teamLeads[0]?.name || "",
+        tl: teamLeads[0]?.name ?? "General",
         summary: "",
         responsibilities: "",
         requirements: "",
+        numPositions: 1,
       });
       setShowCreateForm(false);
       fetchJobs();
@@ -387,11 +412,13 @@ export default function Recruiter() {
     description: string;
     responsibilities: string[];
     requirements: string[];
+    numPositions: number;
   }) => {
     await updateJob(updated.id, {
       title: updated.name,
       department: updated.tl,
       description: updated.description,
+      num_positions: updated.numPositions,
       responsibilities: updated.responsibilities,
       requirements: updated.requirements,
     });
@@ -491,6 +518,18 @@ export default function Recruiter() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Number of Positions
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={newJob.numPositions}
+                onChange={(e) => setNewJob({ ...newJob, numPositions: Math.max(1, Number(e.target.value)) })}
+                className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Box 1: Job Summary
               </label>
               <textarea
@@ -542,6 +581,7 @@ export default function Recruiter() {
                 <th className="px-4 py-3 font-semibold w-8"></th>
                 <th className="px-4 py-3 font-semibold">Job Name</th>
                 <th className="px-4 py-3 font-semibold">Team Lead</th>
+                <th className="px-4 py-3 font-semibold">Positions</th>
                 <th className="px-4 py-3 font-semibold">Description</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Details</th>
@@ -551,13 +591,13 @@ export default function Recruiter() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                     Loading job postings...
                   </td>
                 </tr>
               ) : filteredJobs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400 dark:text-slate-500">
                     No jobs match this filter.
                   </td>
                 </tr>
@@ -581,6 +621,7 @@ export default function Recruiter() {
                       {job.name}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{job.tl}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{job.numPositions}</td>
                     <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
                       {job.description || "-"}
                     </td>

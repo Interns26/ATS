@@ -9,6 +9,9 @@ Protected endpoints (JWT required — for recruiter portal):
   GET  /candidates/export     — download all candidate data as an .xlsx file
 """
 import io
+import os
+import smtplib
+from email.message import EmailMessage
 import json
 from typing import Optional
 
@@ -33,7 +36,13 @@ class CandidateUpdate(BaseModel):
     how_heard:      Optional[str] = None
 
 
+class EmailBatchRequest(BaseModel):
+    emails: list[str]
+    subject: str
+    body: str
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _build_candidate_rows() -> list[dict]:
     """
@@ -142,6 +151,60 @@ def _build_candidate_rows() -> list[dict]:
 def list_candidates():
     """Return all candidates with enriched application, qualification, and ATS data."""
     return _build_candidate_rows()
+
+
+@router.post("/email-batch", status_code=200)
+def send_batch_emails(payload: EmailBatchRequest):
+    """
+    Sends an email to a batch of candidates.
+    Uses real SMTP if configured in .env, otherwise falls back to simulating in logs.
+    """
+    if not payload.emails:
+        raise HTTPException(400, "No emails provided.")
+
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = os.getenv("SMTP_PORT", "587")
+    smtp_username = os.getenv("SMTP_USERNAME")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    smtp_from = os.getenv("SMTP_FROM_EMAIL", smtp_username)
+
+    if smtp_server and smtp_username and smtp_password:
+        print(f"\n[Email Service] 📧 Attempting real SMTP delivery to {len(payload.emails)} candidates...")
+        try:
+            with smtplib.SMTP(smtp_server, int(smtp_port)) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+
+                for email_address in payload.emails:
+                    msg = EmailMessage()
+                    msg.set_content(payload.body)
+                    msg["Subject"] = payload.subject
+                    msg["From"] = smtp_from
+                    msg["To"] = email_address
+
+                    server.send_message(msg)
+                    print(f"  -> Sent to {email_address}")
+
+            print("[Email Service] ✅ Real SMTP delivery successful.\n")
+        except Exception as e:
+            print(f"[Email Service] ❌ SMTP Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+            
+        return {
+            "message": f"Successfully sent real email to {len(payload.emails)} candidates via SMTP.",
+            "recipients": len(payload.emails)
+        }
+    else:
+        # Fallback to simulation mode if no SMTP credentials
+        print(f"\n[Email Service] ⚠️ No SMTP credentials found. Simulating email to {len(payload.emails)} candidates...")
+        print(f"Subject: {payload.subject}")
+        print(f"Body:\n{payload.body}")
+        print(f"Recipients: {', '.join(payload.emails)}\n")
+
+        return {
+            "message": f"Simulated sending email to {len(payload.emails)} candidates (no SMTP credentials configured).",
+            "recipients": len(payload.emails)
+        }
 
 
 @router.delete("/{candidate_id}", status_code=204)

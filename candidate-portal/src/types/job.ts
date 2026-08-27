@@ -11,6 +11,7 @@ export interface Job {
   employmentType: "Permanent" | "Contract" | "Internship" | "Part-time";
   openingDate: string;   // ISO date
   closingDate: string;   // ISO date
+  numPositions: number;
   department: string;
   description: string;
   responsibilities: string[];

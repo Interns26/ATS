@@ -15,14 +15,18 @@ from langchain_core.output_parsers import PydanticOutputParser
 resume_parser = PydanticOutputParser(pydantic_object=ResumeInfo)
 ats_parser = PydanticOutputParser(pydantic_object=ATSResult)
 
-primary_llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+primary_llm = ChatGoogleGenerativeAI(
+    model="gemini-3.6-flash",
     temperature=0,
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=os.getenv("GOOGLE_API_KEY")
 )
 
-def _invoke_llm(prompt_text: str):
-    return primary_llm.invoke(prompt_text)
+def _invoke_llm(prompt_text: str) -> str:
+    response = primary_llm.invoke(prompt_text)
+    content = response.content
+    if isinstance(content, list):
+        return " ".join(item.get("text", "") for item in content if isinstance(item, dict) and "text" in item)
+    return str(content)
 
 
 def extract_text_node(state):
@@ -32,8 +36,8 @@ def extract_text_node(state):
 
 def parse_resume_node(state):
     prompt_text = RESUME_PROMPT.format(resume=state["resume_text"])
-    response = _invoke_llm(prompt_text)
-    result = resume_parser.parse(response.content)
+    content_str = _invoke_llm(prompt_text)
+    result = resume_parser.parse(content_str)
     return {"parsed_resume": result}
 
 
@@ -42,8 +46,8 @@ def ats_node(state):
         resume=state["parsed_resume"],
         jd=state["job_description"]
     )
-    response = _invoke_llm(prompt_text)
-    result = ats_parser.parse(response.content)
+    content_str = _invoke_llm(prompt_text)
+    result = ats_parser.parse(content_str)
 
     # Deduplicate matched & missing skills case-insensitively for score stability
     clean_matched_skills = list({s.strip().lower(): s.strip() for s in result.matched_skills if s and s.strip()}.values())

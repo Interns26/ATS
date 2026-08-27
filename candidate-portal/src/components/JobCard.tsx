@@ -2,7 +2,7 @@
  * Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.
  */
 
-import { MapPin, Clock, ArrowUpRight } from "lucide-react";
+import { MapPin, Clock, Users, ArrowUpRight } from "lucide-react";
 import type { Job } from "../types/job";
 import { getJobStatus, formatDate } from "../lib/jobStatus";
 
@@ -69,6 +69,10 @@ export function JobCard({ job, onClick }: JobCardProps) {
         <span className="flex items-center gap-1.5">
           <Clock size={14} />
           {job.employmentType}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Users size={14} />
+          {job.numPositions} {job.numPositions === 1 ? "Position" : "Positions"}
         </span>
       </div>
 
