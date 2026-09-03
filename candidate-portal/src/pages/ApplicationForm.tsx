@@ -77,15 +77,27 @@ export function ApplicationForm() {
           if (userData && userData.role === "candidate") {
             setFormData((prev) => ({
               ...prev,
+              // basicInfo: {
+              //   ...prev.basicInfo,
+              //   email: userData.email || prev.basicInfo.email,
+              //   firstName: userData.first_name || prev.basicInfo.firstName,
+              //   lastName: userData.last_name || prev.basicInfo.lastName,
+              //   city: userData.city || prev.basicInfo.city,
+              //   stateProvince: userData.state_province || prev.basicInfo.stateProvince,
+              //   mobileNumber: userData.mobile_number || prev.basicInfo.mobileNumber,
+              // },
               basicInfo: {
-                ...prev.basicInfo,
-                email: userData.email || prev.basicInfo.email,
-                firstName: userData.first_name || prev.basicInfo.firstName,
-                lastName: userData.last_name || prev.basicInfo.lastName,
-                city: userData.city || prev.basicInfo.city,
-                stateProvince: userData.state_province || prev.basicInfo.stateProvince,
-                mobileNumber: userData.mobile_number || prev.basicInfo.mobileNumber,
-              },
+  ...prev.basicInfo,
+  email: userData.email || prev.basicInfo.email,
+  firstName: userData.first_name || prev.basicInfo.firstName,
+  lastName: userData.last_name || prev.basicInfo.lastName,
+  city: userData.city || prev.basicInfo.city,
+  stateProvince:
+    userData.state_province || prev.basicInfo.stateProvince,
+  mobileNumber:
+    userData.mobile_number || prev.basicInfo.mobileNumber,
+  cnic: userData.cnic || prev.basicInfo.cnic,
+},
             }));
           }
         })

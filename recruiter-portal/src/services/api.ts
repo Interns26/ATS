@@ -247,6 +247,7 @@ export async function createJob(jobData: {
   title: string;
   location?: string;
   employment_type?: string;
+  closing_date?: string | null;
   department?: string;
   description?: string;
   responsibilities?: string[];
@@ -295,6 +296,65 @@ export async function approveJob(jobId: string): Promise<{ job_id: string; minio
   return response.json();
 }
 
+export type JobComment = {
+  id: string;
+  job_id: string;
+  job_title?: string;
+  comment: string | null;
+  reviewer_role: string;
+  action: string;
+  recipient_username: string | null;
+  created_at: string;
+};
+
+export async function addJobComment(
+  jobId: string,
+ data: {
+  comment?: string | null;
+  reviewer_role: string;
+  action: string;
+  recipient_username?: string | null;
+}
+): Promise<JobComment> {
+  const response = await apiFetch(`/jobs/${jobId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to add job comment.");
+  }
+
+  return response.json();
+}
+
+export async function getJobComments(
+  jobId: string
+): Promise<JobComment[]> {
+  const response = await apiFetch(`/jobs/${jobId}/comments`);
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail ?? "Failed to load job comments.");
+  }
+
+  return response.json();
+}
+export async function getMyJobComments(): Promise<JobComment[]> {
+  const response = await apiFetch("/jobs/comments/assigned-to-me");
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(
+      detail?.detail ?? "Failed to load assigned job reviews."
+    );
+  }
+
+  return response.json();
+}
+
 export async function deleteJob(jobId: string): Promise<void> {
   const response = await apiFetch(`/jobs/${jobId}`, {
     method: "DELETE",
@@ -312,6 +372,7 @@ export async function updateJob(
     requirements?: string[];
     location?: string;
     employment_type?: string;
+    closing_date?: string | null;
     num_positions?: number;
   }
 ): Promise<void> {

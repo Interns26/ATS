@@ -9,84 +9,91 @@ interface BasicInfoStepProps {
   value: BasicInfo;
   onChange: (value: BasicInfo) => void;
 }
+
+// Format mobile number as:
+// +92 300 1234567
 function formatMobileNumber(input: string): string {
-  const digits = input.replace(/\D/g, ""); 
-  
+  let digits = input.replace(/\D/g, "");
+
+  // Remove Pakistan country code if user enters it
   if (digits.startsWith("92")) {
-    const remaining = digits.slice(2);
-    if (remaining.length === 0) return "+92";
-    if (remaining.length <= 3) return `+92 ${remaining}`;
-    return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
+    digits = digits.slice(2);
   }
-  if (digits.startsWith("3") || digits.length > 0) {
-    const combined = "92" + digits;
-    const remaining = combined.slice(2);
-    if (remaining.length === 0) return "+92";
-    if (remaining.length <= 3) return `+92 ${remaining}`;
-    return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
+
+  // Remove leading 0 if user enters 03001234567
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
   }
-  return `+92 ${digits}`.trim();
+
+  // Maximum 10 digits after +92
+  digits = digits.slice(0, 10);
+
+  if (digits.length === 0) {
+    return "+92 ";
+  }
+
+  if (digits.length <= 3) {
+    return `+92 ${digits}`;
+  }
+
+  return `+92 ${digits.slice(0, 3)} ${digits.slice(3)}`;
 }
+
+// Format CNIC as:
+// XXXXX-XXXXXXX-X
 function formatCNIC(input: string): string {
-  const digits = input.replace(/\D/g, ""); 
-  if (digits.length <= 5) return digits;
-  if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  const digits = input.replace(/\D/g, "").slice(0, 13);
+
+  if (digits.length <= 5) {
+    return digits;
+  }
+
+  if (digits.length <= 12) {
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  }
+
   return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`;
 }
-function formatPhoneNumber(input: string): string {
-  const digits = input.replace(/\D/g, ""); 
-  if (digits.startsWith("92")) {
-    const remaining = digits.slice(2);
-    if (remaining.length === 0) return "+92";
-    if (remaining.length <= 3) return `+92 ${remaining}`;
-    return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
-  }
-  if (digits.startsWith("3") || digits.length > 0) {
-    const phone = digits.startsWith("92") ? digits : digits;
-    if (!digits.startsWith("92")) {
-      const combined = "92" + digits;
-      const remaining = combined.slice(2);
-      if (remaining.length === 0) return "+92";
-      if (remaining.length <= 3) return `+92 ${remaining}`;
-      return `+92 ${remaining.slice(0, 3)} ${remaining.slice(3, 10)}`;
-    }
-  }
-  
-  return `+92 ${digits}`.trim();
-}
-export function BasicInfoStep({ value, onChange }: BasicInfoStepProps) {
-  const update = (field: keyof BasicInfo, val: string) =>
-    onChange({ ...value, [field]: val });
 
-  const handleCNICChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+export function BasicInfoStep({
+  value,
+  onChange,
+}: BasicInfoStepProps) {
+  const update = (field: keyof BasicInfo, val: string) =>
+    onChange({
+      ...value,
+      [field]: val,
+    });
+
+  const handleCNICChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const formatted = formatCNIC(e.target.value);
     update("cnic", formatted);
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    update("phoneNumber", formatted);
+  const handleMobileNumberChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const formatted = formatMobileNumber(e.target.value);
+
+    onChange({
+      ...value,
+      mobileNumber: formatted,
+      phoneNumber: formatted,
+    });
   };
 
-  const handlePhoneFocus = () => {
-    if (!value.phoneNumber || value.phoneNumber === "") {
-      update("phoneNumber", "+92 ");
+  const handleMobileNumberFocus = () => {
+    if (!value.mobileNumber) {
+      update("mobileNumber", "+92 ");
     }
   };
-  const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatMobileNumber(e.target.value);
-    // Update both mobileNumber and phoneNumber to keep them in sync
-    onChange({ ...value, mobileNumber: formatted, phoneNumber: formatted });
-  };
-
-const handleMobileNumberFocus = () => {
-  if (!value.mobileNumber || value.mobileNumber === "") {
-    update("mobileNumber", "+92 ");
-  }
-};
 
   return (
     <div className="space-y-6">
+
+      {/* Candidate Information */}
       <div>
         <h2
           className="text-xl font-bold text-ink-900"
@@ -94,32 +101,44 @@ const handleMobileNumberFocus = () => {
         >
           Candidate Information
         </h2>
+
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
           <div className="sm:col-span-2">
             <TextField
               label="Email Address"
               required
               type="email"
               value={value.email}
-              onChange={(e) => update("email", e.target.value)}
+              onChange={(e) =>
+                update("email", e.target.value)
+              }
               placeholder="you@example.com"
             />
           </div>
+
           <TextField
             label="First Name"
             required
             value={value.firstName}
-            onChange={(e) => update("firstName", e.target.value)}
+            onChange={(e) =>
+              update("firstName", e.target.value)
+            }
           />
+
           <TextField
             label="Last Name"
             required
             value={value.lastName}
-            onChange={(e) => update("lastName", e.target.value)}
+            onChange={(e) =>
+              update("lastName", e.target.value)
+            }
           />
+
         </div>
       </div>
 
+      {/* Address */}
       <div>
         <h2
           className="text-xl font-bold text-ink-900"
@@ -127,21 +146,30 @@ const handleMobileNumberFocus = () => {
         >
           Address
         </h2>
+
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
           <TextField
             label="City"
             required
             value={value.city}
-            onChange={(e) => update("city", e.target.value)}
+            onChange={(e) =>
+              update("city", e.target.value)
+            }
           />
+
           <TextField
             label="State / Province"
             value={value.stateProvince}
-            onChange={(e) => update("stateProvince", e.target.value)}
+            onChange={(e) =>
+              update("stateProvince", e.target.value)
+            }
           />
+
         </div>
       </div>
 
+      {/* Contact Information */}
       <div>
         <h2
           className="text-xl font-bold text-ink-900"
@@ -149,25 +177,32 @@ const handleMobileNumberFocus = () => {
         >
           Contact Information
         </h2>
+
         <div className="mt-4 grid gap-4">
-        <TextField
-  label="Mobile Number"
-  required
-  type="tel"
-  value={value.mobileNumber}
-  onChange={handleMobileNumberChange}
-  onFocus={handleMobileNumberFocus}
-  placeholder="+92 300 1234567"
-  maxLength={17}
-/>
+
+          <TextField
+            label="Mobile Number"
+            required
+            type="tel"
+            value={value.mobileNumber}
+            onChange={handleMobileNumberChange}
+            onFocus={handleMobileNumberFocus}
+            placeholder="+92 300 1234567"
+            maxLength={15}
+          />
+
           <TextAreaField
             label="How did you hear about this job?"
             value={value.howHeard}
-            onChange={(e) => update("howHeard", e.target.value)}
+            onChange={(e) =>
+              update("howHeard", e.target.value)
+            }
           />
+
         </div>
       </div>
 
+      {/* Professional Information */}
       <div>
         <h2
           className="text-xl font-bold text-ink-900"
@@ -175,44 +210,65 @@ const handleMobileNumberFocus = () => {
         >
           Professional Information
         </h2>
+
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+          {/* CNIC */}
           <TextField
             label="CNIC"
+            required
             value={value.cnic || ""}
             onChange={handleCNICChange}
             placeholder="XXXXX-XXXXXXX-X"
             maxLength={15}
           />
-          <TextField
-            label="Mobile Number"
-            type="tel"
-            value={value.phoneNumber || ""}
-            onChange={(e) => update("phoneNumber", e.target.value)}
-            placeholder="+92 300 1234567"
-            maxLength={17}
-            disabled
-          />
+
+          {/* Years of Experience */}
           <TextField
             label="Years of Experience"
+            required
             type="number"
             value={value.yearsOfExperience || ""}
-            onChange={(e) => update("yearsOfExperience", e.target.value)}
+            onChange={(e) =>
+              update(
+                "yearsOfExperience",
+                e.target.value
+              )
+            }
             placeholder="e.g., 5"
           />
+
+          {/* Current Job Title */}
           <TextField
             label="Current Job Title"
+            required
             value={value.currentJobTitle || ""}
-            onChange={(e) => update("currentJobTitle", e.target.value)}
+            onChange={(e) =>
+              update(
+                "currentJobTitle",
+                e.target.value
+              )
+            }
             placeholder="e.g., Senior Developer"
           />
+
+          {/* Current Employer */}
           <TextField
             label="Current Employer"
+            required
             value={value.currentEmployer || ""}
-            onChange={(e) => update("currentEmployer", e.target.value)}
+            onChange={(e) =>
+              update(
+                "currentEmployer",
+                e.target.value
+              )
+            }
             placeholder="e.g., Tech Company Inc"
           />
+
         </div>
       </div>
+
     </div>
   );
 }

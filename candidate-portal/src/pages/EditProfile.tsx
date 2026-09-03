@@ -50,14 +50,12 @@ export function EditProfile() {
           name: `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim(),
           email: user.email ?? "",
 
-          // Contact Information
           address: user.address ?? "",
           city: user.city ?? "",
           state_province: user.state_province ?? "",
           mobile_number: user.mobile_number ?? "",
           how_heard: user.how_heard ?? "",
 
-          // Professional Information
           cnic: user.cnic ?? "",
           years_of_experience:
             user.years_of_experience !== undefined &&
@@ -84,6 +82,85 @@ export function EditProfile() {
     setFormData((previousData) => ({
       ...previousData,
       [e.target.name]: e.target.value,
+    }));
+  };
+
+  // Format Pakistani mobile number
+  const handleMobileNumberChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    let value = e.target.value.replace(/\D/g, "");
+
+    // Convert 03XXXXXXXXX → 923XXXXXXXXX
+    if (value.startsWith("03")) {
+      value = "92" + value.substring(1);
+    }
+
+    // Remove leading 92 if entered as 0092
+    if (value.startsWith("0092")) {
+      value = value.substring(2);
+    }
+
+    // Add Pakistan country code
+    if (!value.startsWith("92")) {
+      value = "92" + value;
+    }
+
+    // Maximum: 92 + 10 digits
+    value = value.substring(0, 12);
+
+    // Format: +92 300 1234567
+    let formatted = "+";
+
+    if (value.length >= 2) {
+      formatted += value.substring(0, 2);
+    }
+
+    if (value.length > 2) {
+      formatted += " " + value.substring(2, 5);
+    }
+
+    if (value.length > 5) {
+      formatted += " " + value.substring(5);
+    }
+
+    setFormData((previousData) => ({
+      ...previousData,
+      mobile_number: formatted,
+    }));
+  };
+
+  // Format CNIC
+  const handleCnicChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    let value = e.target.value.replace(/\D/g, "");
+
+    // Maximum 13 digits
+    value = value.substring(0, 13);
+
+    // Format: XXXXX-XXXXXXX-X
+    let formatted = value;
+
+    if (value.length > 5) {
+      formatted =
+        value.substring(0, 5) +
+        "-" +
+        value.substring(5);
+    }
+
+    if (value.length > 12) {
+      formatted =
+        value.substring(0, 5) +
+        "-" +
+        value.substring(5, 12) +
+        "-" +
+        value.substring(12);
+    }
+
+    setFormData((previousData) => ({
+      ...previousData,
+      cnic: formatted,
     }));
   };
 
@@ -155,8 +232,8 @@ export function EditProfile() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
+
       <main className="mx-auto max-w-3xl px-4 py-8 pb-20">
-        
         {/* Navigation & Title */}
         <div className="mb-6">
           <button
@@ -166,6 +243,7 @@ export function EditProfile() {
             <ArrowLeft size={16} />
             Back to Jobs
           </button>
+
           <div className="flex items-center justify-between">
             <h1
               className="text-3xl font-bold text-slate-900"
@@ -173,7 +251,9 @@ export function EditProfile() {
             >
               My Profile
             </h1>
+
             <button
+              type="button"
               onClick={handleSubmit}
               className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 font-medium text-white shadow-sm transition hover:bg-primary-700"
             >
@@ -190,10 +270,7 @@ export function EditProfile() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* =========================
-              BASIC INFORMATION
-          ========================== */}
+          {/* BASIC INFORMATION */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="mb-5 flex items-center gap-2 text-lg font-semibold text-slate-900">
               <User size={20} className="text-primary-600" />
@@ -205,6 +282,7 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Full Name
                 </label>
+
                 <input
                   name="name"
                   placeholder="E.g. Jane Doe"
@@ -218,6 +296,7 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Email Address
                 </label>
+
                 <input
                   name="email"
                   type="email"
@@ -229,9 +308,7 @@ export function EditProfile() {
             </div>
           </div>
 
-          {/* =========================
-              CONTACT INFORMATION
-          ========================== */}
+          {/* CONTACT INFORMATION */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="mb-5 flex items-center gap-2 text-lg font-semibold text-slate-900">
               <MapPin size={20} className="text-primary-600" />
@@ -243,6 +320,7 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Address
                 </label>
+
                 <input
                   name="address"
                   type="text"
@@ -257,10 +335,11 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   City
                 </label>
+
                 <input
                   name="city"
                   type="text"
-                  placeholder="E.g. New York"
+                  placeholder="E.g. Faisalabad"
                   value={formData.city}
                   onChange={handleChange}
                   className={inputBase}
@@ -271,10 +350,11 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   State / Province
                 </label>
+
                 <input
                   name="state_province"
                   type="text"
-                  placeholder="E.g. NY"
+                  placeholder="E.g. Punjab"
                   value={formData.state_province}
                   onChange={handleChange}
                   className={inputBase}
@@ -285,12 +365,14 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Mobile Number
                 </label>
+
                 <input
                   name="mobile_number"
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+92 300 1234567"
                   value={formData.mobile_number}
-                  onChange={handleChange}
+                  onChange={handleMobileNumberChange}
+                  maxLength={17}
                   className={inputBase}
                 />
               </div>
@@ -299,6 +381,7 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   How did you hear about us?
                 </label>
+
                 <input
                   name="how_heard"
                   type="text"
@@ -311,9 +394,7 @@ export function EditProfile() {
             </div>
           </div>
 
-          {/* =========================
-              PROFESSIONAL INFORMATION
-          ========================== */}
+          {/* PROFESSIONAL INFORMATION */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="mb-5 flex items-center gap-2 text-lg font-semibold text-slate-900">
               <Briefcase size={20} className="text-primary-600" />
@@ -325,12 +406,14 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   National ID / CNIC
                 </label>
+
                 <input
                   name="cnic"
                   type="text"
-                  placeholder="E.g. XXXXX-XXXXXXX-X"
+                  placeholder="XXXXX-XXXXXXX-X"
                   value={formData.cnic}
-                  onChange={handleChange}
+                  onChange={handleCnicChange}
+                  maxLength={15}
                   className={inputBase}
                 />
               </div>
@@ -339,6 +422,7 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Years of Experience
                 </label>
+
                 <input
                   name="years_of_experience"
                   type="number"
@@ -355,10 +439,11 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Current Job Title
                 </label>
+
                 <input
                   name="current_job_title"
                   type="text"
-                  placeholder="E.g. Senior Software Engineer"
+                  placeholder="E.g. Software Engineer"
                   value={formData.current_job_title}
                   onChange={handleChange}
                   className={inputBase}
@@ -369,6 +454,7 @@ export function EditProfile() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Current Employer
                 </label>
+
                 <input
                   name="current_employer"
                   type="text"
@@ -381,7 +467,7 @@ export function EditProfile() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-200">
+          <div className="flex justify-end border-t border-slate-200 pt-4">
             <button
               type="submit"
               className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-700"
