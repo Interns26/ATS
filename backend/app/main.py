@@ -15,6 +15,7 @@ from app.routers import documents
 from app.routers import jobs
 from app.routers import applications
 from app.routers import candidates
+from app.routers import ai_assistant
 
 app = FastAPI(
     title="ATS - MinIO Storage Service"
@@ -67,6 +68,7 @@ app.include_router(resumes.router,    dependencies=[Depends(get_current_user)])
 app.include_router(analyze.router,    dependencies=[Depends(get_current_user)])
 app.include_router(documents.router,  dependencies=[Depends(get_current_user)])
 app.include_router(candidates.router, dependencies=[Depends(get_current_user)])
+app.include_router(ai_assistant.router, dependencies=[Depends(get_current_user)])
 
 
 @app.get("/health")

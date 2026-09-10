@@ -486,3 +486,34 @@ export async function sendBatchEmails(
   }
   return response.json();
 }
+
+
+// ── AI Assistant API ─────────────────────────────────────────────────────────
+
+export type AIChatResponse = {
+  response: string;
+};
+
+export async function askAI(message: string): Promise<string> {
+  const response = await apiFetch("/ai-assistant/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+
+    throw new Error(
+      detail?.detail ?? "Failed to get a response from the AI Assistant."
+    );
+  }
+
+  const data: AIChatResponse = await response.json();
+
+  return data.response;
+}

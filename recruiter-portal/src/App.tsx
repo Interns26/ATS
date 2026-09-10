@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import Navbar from "./components/Navbar/Navbar";
+import AIAssistant from "./components/AIAssistant/AIAssistant";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Home from "./pages/Home";
@@ -26,8 +27,13 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
   const isLoginPage = location.pathname === "/login";
 
   return (
-    <>
-      {!isLoginPage && <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />}
+      <>
+      {!isLoginPage && (
+        <Navbar
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+        />
+      )}
 
       <main className="mx-auto max-w-7xl p-8">
         <Routes>
@@ -88,6 +94,7 @@ function AppShell({ darkMode, setDarkMode }: AppShellProps) {
           />
         </Routes>
       </main>
+       {!isLoginPage && <AIAssistant />}
     </>
   );
 }

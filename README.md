@@ -1,339 +1,471 @@
 # ATS Resume Analyzer & Talent Acquisition System
 
-**Uworx UK** • AI-Powered Applicant Tracking & Candidate Portal System
+AI-assisted applicant tracking and talent acquisition platform for Uworx UK. The system provides separate experiences for candidates, recruiters, and HR administrators, backed by a FastAPI service, PostgreSQL, MinIO, and AI evaluation workflows.
 
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-19.0-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![MinIO](https://img.shields.io/badge/MinIO-Object_Storage-C42E35?style=flat&logo=minio&logoColor=white)](https://min.io/)
+> **Proprietary software**
+>
+> Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained in this repository is proprietary and confidential.
 
-> **Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.**
+## Contents
 
----
+- [What the system does](#what-the-system-does)
+- [Architecture](#architecture)
+- [Features by role](#features-by-role)
+- [Main workflows](#main-workflows)
+- [Technology stack](#technology-stack)
+- [Prerequisites](#prerequisites)
+- [Local setup](#local-setup)
+- [Configuration](#configuration)
+- [Development accounts and sample data](#development-accounts-and-sample-data)
+- [API overview](#api-overview)
+- [AI analysis](#ai-analysis)
+- [MCP and AI assistant](#mcp-and-ai-assistant)
+- [Validation](#validation)
+- [Troubleshooting](#troubleshooting)
+- [Security notes](#security-notes)
+- [Project structure](#project-structure)
+- [License](#license)
 
-## Executive Overview
+## What the System Does
 
-The **ATS Resume Analyzer & Talent Acquisition System** is an enterprise-grade recruiting platform designed for **Uworx UK**. It features a modern Candidate Portal for job applications, a comprehensive Recruiter Portal for job posting management, HR approvals, AI candidate scoring, and a Candidate Database Manager — all backed by a high-performance FastAPI backend, PostgreSQL, MinIO Object Storage, and LangGraph AI evaluation pipelines.
+The platform supports the recruiting lifecycle from job creation through candidate evaluation:
 
----
+1. A team lead creates a job posting.
+2. HR reviews and approves the posting.
+3. Approval provisions job-specific MinIO storage.
+4. Candidates browse approved openings and submit applications with resumes.
+5. Recruiters review, filter, and analyze submitted resumes.
+6. The AI workflow produces scores, evidence, and recommendations.
+7. Recruiters manage candidate records, contact candidates, and export data.
 
-## Key Features
+The repository contains three application surfaces:
 
-### 🏢 Recruiter Portal (`recruiter-portal/`)
-- **ATS Resume Scoring & AI Recommendation**: Scores candidate resumes against job descriptions using LangGraph AI pipelines with configurable decision bounds (**Interview ≥ 70%**, **Consider ≥ 50%**, **Reject < 50%** by default).
-- **Real Candidate & Resume Filtering**: Dynamic constraints filter applicants by **CGPA** (`<=`, `>=`, `=`) and **University** (dynamically extracted from loaded resumes, plus an `Other` free-text option).
-- **Recruiter Job Posting**: Post new job openings (`/recruiter`) capturing job summary, key responsibilities, and required qualifications with a dedicated Team Lead selector.
-- **HR Approval Queue & Storage Provisioning**: HR review queue (`/approval`) for approving job postings, which automatically provisions dedicated MinIO storage buckets named after the job title (e.g. `senior-backend-engineer-a1b2c3`) for candidate resume uploads.
-- **Automatic Storage Lifecycle**: Deleting a job posting automatically purges its dedicated MinIO storage bucket and all stored resume files.
-- **Candidate Database Manager** (`/candidates`): View, search, edit, and delete all candidate records stored in the system. Export the full candidate dataset as a formatted `.xlsx` workbook (Google Sheets compatible).
-- **Analysis Caching**: ATS results are cached per candidate-email × job in PostgreSQL. Re-running analysis returns cached results instantly; a **Force Re-analyze** option clears the cache first.
+| Application | Purpose | Location |
+| --- | --- | --- |
+| Candidate Portal | Job discovery, authentication, applications, resumes, and profile management | [`candidate-portal/`](candidate-portal/) |
+| Recruiter Portal | Job management, HR approval, candidate review, analysis, and exports | [`recruiter-portal/`](recruiter-portal/) |
+| FastAPI Backend | Authentication, persistence, storage, analysis, email, and assistant APIs | [`backend/`](backend/) |
 
-### 👤 Candidate Portal (`candidate-portal/`)
-- **Job Openings Showcase**: Browse live approved job positions with real-time search.
-- **Multi-Step Application Submission**: Interactive 4-step application form capturing contact info, qualifications, work experience, and resume upload (PDF or DOCX).
-- **Email Deduplication**: Submitting an application for an existing email reuses the existing candidate record and updates their personal info, rather than creating a duplicate entry.
-- **Candidate Authentication & Session Persistence**: Email/Password registration and login with session persistence stored in browser `localStorage` (`ats:token`).
-- **Google OAuth 2.0 Sign-In**: One-click candidate registration and sign-in using Google Identity Services (GIS SDK).
-- **Auto Pre-Fill**: Logged-in candidates have their contact information auto-populated into application forms.
+## Architecture
 
-### ⚡ FastAPI Backend (`backend/`)
-- **JWT Role-Based Access Control**: Secure JWT authentication supporting `hr_admin`, `team_lead`, and `candidate` roles.
-- **PostgreSQL Database Schema**: Relational storage for candidates, job postings, applications, qualifications, work experience, ATS analysis cache, and team lead accounts.
-- **MinIO Object Storage Integration**: Per-job bucket management and streaming file downloads for candidate resumes. Bucket names are derived from the job title slug for easy identification.
-- **Human-Readable File Naming**: Resume files stored in MinIO are named after the candidate (e.g. `john-smith-a1b2c3.pdf`) for easy identification.
-- **LangGraph AI Resume Evaluation**: Deterministic resume parsing, canonical skill matching, 1-to-1 requirement verification, and holistic fit scoring using Llama 3.3 70B via Groq.
-- **Parallel Processing**: Up to 5 resumes processed simultaneously per analysis run via `ThreadPoolExecutor`.
+```text
+                         +-----------------------+
+                         |   Candidate Portal    |
+                         | React + TypeScript    |
+                         +-----------+-----------+
+                                     |
+                                     | HTTP / JSON / multipart
+                                     v
++-------------------+       +--------+---------+       +------------------+
+| Recruiter Portal  +------>|   FastAPI API    +------>|   PostgreSQL     |
+| React + TypeScript|       |  backend/app/    |       | users, jobs,     |
++-------------------+       +--------+---------+       | candidates, ATS  |
+                                     |                 +------------------+
+                                     |
+                      +--------------+--------------+
+                      |                             |
+                      v                             v
+                +-------------+             +---------------+
+                |    MinIO    |             | AI Workflows  |
+                | resume files|             | LangGraph     |
+                +-------------+             | Gemini/Groq*  |
+                                            +---------------+
 
----
+* Provider usage is configured in the backend workflow and assistant modules.
+```
 
-## ATS AI Scoring & Evaluation Formula
+## Features by Role
 
-The AI evaluation engine computes a balanced compatibility score ($0 - 100\%$) for each candidate:
+### Candidates
 
-$$\text{ATS Score} = (\text{Skills Match Ratio} \times 40) + (\text{Requirements Match Ratio} \times 40) + (\text{LLM Score} \times 20)$$
+- Browse approved job openings and search listings.
+- View job details before applying.
+- Submit a multi-step application containing contact information, qualifications, work experience, and a PDF or DOCX resume.
+- Register and log in with email/password.
+- Sign in with Google Identity Services when configured.
+- Reuse an existing candidate record when applying with an existing email address.
+- Edit profile information after signing in.
+- Keep the authentication token in browser storage for the active session.
 
-- **Skills Match (40%)**: Compares candidate technical tools with canonical technology synonym recognition (e.g. `React` = `React.js`, `Postgres` = `PostgreSQL`). Deduplicates skills case-insensitively for score stability.
-- **Requirements Match (40%)**: Verifies candidate evidence against explicit job responsibilities & qualifications on a strict 1-to-1 bullet basis.
-- **LLM Holistic Fit (20%)**: Evaluates overall project complexity, growth trajectory, and experience alignment.
+### Team Leads and Recruiters
 
-### Recommendation Thresholds
+- Create job postings with title, location, employment type, department, dates, responsibilities, requirements, and position count.
+- View job-specific resumes and download stored files.
+- Filter candidates by university and CGPA.
+- Upload a job description document and extract its text.
+- Run batch resume analysis with cached results.
+- Force a fresh analysis when job or candidate information changes.
+- Review ATS scores, recommendations, and candidate details.
+- Search, edit, and delete candidate records.
+- Send batch candidate emails when SMTP is configured.
+- Export candidate data as an `.xlsx` workbook.
+- Use the recruiter AI assistant for supported candidate, job, application, and resume-analysis queries.
+
+### HR Administrators
+
+- Review pending job postings.
+- Approve postings and provision their MinIO storage buckets.
+- Review all jobs and manage the candidate database.
+- Use job comments and review-related workflow endpoints exposed by the backend.
+
+## Main Workflows
+
+### Job approval and storage
+
+New jobs start in a pending state. When HR approves a job, the backend creates a dedicated MinIO bucket for that job. Candidate resumes are then stored in the job-specific bucket. Deleting a job also removes its associated stored resume objects through the storage lifecycle.
+
+Bucket names are generated from job information and an identifier. Do not depend on a specific bucket name format in integrations; use the bucket name returned by the API.
+
+### Candidate applications
+
+Applications are submitted as multipart form data to the backend. The application includes candidate details, qualifications, work experience, and a resume file. The backend associates repeated submissions from the same email with the existing candidate record instead of creating an unnecessary duplicate.
+
+### Resume analysis
+
+The analysis endpoint processes resumes for a job, extracts structured information, evaluates fit against the job, and stores results in PostgreSQL. Results are cached by candidate and job. Use the force option or clear the job cache when a new evaluation is required.
+
+## Technology Stack
+
+| Area | Technologies |
+| --- | --- |
+| Frontends | React 19, TypeScript, Vite, Tailwind CSS, React Router |
+| Backend | Python 3.11+, FastAPI, Uvicorn, Pydantic |
+| Database | PostgreSQL 16, psycopg2 |
+| Object storage | MinIO, MinIO Python SDK |
+| AI evaluation | LangGraph, LangChain integrations, Google/Groq model integrations |
+| Document processing | PyMuPDF, pdfplumber, python-docx |
+| Authentication | JWT, password hashing, Google Identity Services |
+| Export and email | openpyxl, SMTP |
+| Local infrastructure | Docker Compose |
+
+## Prerequisites
+
+Install the following before starting:
+
+- Python 3.11 or newer
+- Node.js 18 or newer and npm
+- Docker Desktop with Docker Compose
+- A Google API key for the configured AI workflow
+- A Gemini API key if using the AI assistant or Gemini-backed modules
+- A Google OAuth client ID if Google candidate sign-in is enabled
+
+## Local Setup
+
+### 1. Start PostgreSQL and MinIO
+
+From the repository root:
+
+```powershell
+docker compose up -d
+```
+
+The compose file starts:
+
+| Service | URL or address | Development credentials |
+| --- | --- | --- |
+| PostgreSQL | `localhost:5432` | `ats` / `ats_password` |
+| MinIO API | `http://localhost:9000` | `admin` / `admin12345` |
+| MinIO Console | `http://localhost:9001` | `admin` / `admin12345` |
+
+Check the container status with:
+
+```powershell
+docker compose ps
+```
+
+### 2. Configure and start the backend
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+Copy-Item .env.example .env
+pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Backend URLs:
+
+- API: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
+
+The backend initializes database tables, ensures the default MinIO bucket exists, and seeds development data during startup.
+
+### 3. Start the recruiter portal
+
+Open another terminal from the repository root:
+
+```powershell
+cd recruiter-portal
+npm install
+npm run dev -- --port 5173
+```
+
+Open `http://localhost:5173`.
+
+### 4. Start the candidate portal
+
+Open another terminal from the repository root:
+
+```powershell
+cd candidate-portal
+npm install
+npm run dev -- --port 5174
+```
+
+Open `http://localhost:5174`.
+
+The explicit port arguments allow both Vite applications to run at the same time. Without them, Vite chooses an available port automatically.
+
+## Configuration
+
+### Backend environment
+
+Copy [`backend/.env.example`](backend/.env.example) to `backend/.env` and configure the following groups:
+
+```env
+# PostgreSQL
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=ats
+POSTGRES_PASSWORD=ats_password
+POSTGRES_DB=ats_db
+
+# MinIO
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=admin
+MINIO_SECRET_KEY=admin12345
+MINIO_BUCKET=resumes
+MINIO_SECURE=false
+
+# Authentication
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=your_bcrypt_hash
+JWT_SECRET_KEY=replace_with_a_long_random_value
+JWT_EXPIRE_MINUTES=120
+
+# Google and AI providers
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_API_KEY=your_google_api_key
+GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+
+# Optional SMTP
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your_email@example.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM_EMAIL=your_email@example.com
+```
+
+`GEMINI_API_KEY` is required by the AI assistant module even though older environment templates may not list it. Add it when using [`backend/app/routers/ai_assistant.py`](backend/app/routers/ai_assistant.py).
+
+### Candidate portal environment
+
+Copy [`candidate-portal/.env.example`](candidate-portal/.env.example) to `candidate-portal/.env`:
+
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+The frontends currently target `http://localhost:8000` directly for API calls. Change the frontend service configuration if the backend is hosted elsewhere.
+
+## Development Accounts and Sample Data
+
+The following credentials are for local development only:
+
+| Role | Username | Password |
+| --- | --- | --- |
+| HR administrator | `admin` | `admin` |
+| Team lead | `sarah` | `password123` |
+| Team lead | `alex` | `password123` |
+| Team lead | `david` | `password123` |
+| Team lead | `emily` | `password123` |
+
+The backend seeds team leads and sample approved jobs when the relevant tables are empty. Replace the development credentials and secrets before using the system outside a local environment.
+
+## API Overview
+
+Interactive documentation is available at `http://localhost:8000/docs` while the backend is running.
+
+| Route group | Purpose |
+| --- | --- |
+| `/health` | Service health check |
+| `/auth` | Admin, team lead, candidate, Google login, profile, and team-lead endpoints |
+| `/jobs` | Public job listings, creation, updates, approvals, comments, and deletion |
+| `/applications` | Candidate application and resume submission |
+| `/resumes` | Job resume listing and downloads |
+| `/analyze` | Resume analysis, cache management, and forced re-analysis |
+| `/candidates` | Candidate listing, editing, deletion, email batches, and Excel export |
+| `/documents` | Job-description text extraction |
+| `/buckets` | MinIO bucket listing |
+| `/storage` | Default-bucket file listing, download, and deletion |
+| `/ai-assistant` | Recruiter assistant chat endpoint |
+
+Notable examples:
+
+```text
+GET    /health
+POST   /auth/login
+POST   /auth/candidate/register
+POST   /auth/candidate/login
+POST   /auth/google
+GET    /jobs/
+POST   /jobs/
+PATCH  /jobs/{job_id}/approve
+POST   /applications/{job_id}
+GET    /resumes/{bucket_name}
+POST   /analyze/{bucket_name}?force=false
+DELETE /analyze/cache/{bucket_name}
+GET    /candidates/export
+POST   /documents/extract-text
+POST   /ai-assistant/chat
+```
+
+Protected routes require the JWT returned by authentication. The frontend applies role-specific route restrictions for HR administrators, team leads, and candidates. Backend routers currently focus primarily on token authentication; do not treat frontend route hiding as a substitute for server-side authorization in a production deployment.
+
+## AI Analysis
+
+The analysis workflow combines structured resume extraction, job comparison, and model-based evaluation. The score is designed around three parts:
+
+```text
+ATS Score =
+  Skills Match Ratio × 40
+  + Requirements Match Ratio × 40
+  + Holistic Fit Score × 20
+```
+
+Default recommendations shown by the recruiter portal are:
+
 | Score | Recommendation |
-| :--- | :--- |
-| ≥ 70% | **Interview** |
-| 50% – 69% | **Consider** |
-| < 50% | **Reject** |
+| --- | --- |
+| `70%` or higher | Interview |
+| `50%` to `69%` | Consider |
+| Below `50%` | Reject |
 
-Thresholds are configurable per analysis run from the Home page.
+Analysis results are cached per candidate and job. Re-running an analysis without `force=true` can return the cached result. Use the cache deletion endpoint or the force option for a fresh run.
 
----
+Model selection and provider behavior are controlled by the backend workflow and environment configuration. Review [`backend/workflow/nodes.py`](backend/workflow/nodes.py) and [`backend/workflow/prompts.py`](backend/workflow/prompts.py) before describing a particular model or provider in an external deployment document.
 
-## Tech Stack
+## MCP and AI Assistant
 
-| Domain | Technologies |
-| :--- | :--- |
-| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS, TailwindCSS (candidate portal), Lucide Icons |
-| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2 |
-| **Authentication** | JWT (`python-jose`), Bcrypt (`passlib`), Google Identity Services (`google-auth`) |
-| **Database & Storage** | PostgreSQL (`psycopg2`), MinIO Python SDK |
-| **AI Workflow** | LangGraph, Groq LLM API (Llama 3.3 70B), PyMuPDF / pdfplumber |
-| **Export** | `openpyxl` (Excel .xlsx generation) |
-| **DevOps & Containers** | Docker, Docker Compose |
+The backend includes an AI assistant route and a FastMCP server under [`backend/app/mcp/`](backend/app/mcp/). The available tools support recruiting-oriented queries across candidates, jobs, applications, and analysis results.
 
----
+The assistant requires the provider credentials used by its module, including `GEMINI_API_KEY` where configured. Start the API first so the recruiter portal can communicate with the assistant endpoint.
 
-## Architecture & Project Structure
+For direct MCP development or testing, review:
+
+- [`backend/app/mcp/server.py`](backend/app/mcp/server.py)
+- [`backend/app/mcp/client.py`](backend/app/mcp/client.py)
+- [`backend/test_mcp_client.py`](backend/test_mcp_client.py)
+
+## File and Storage Rules
+
+- Candidate resumes are submitted as PDF or DOCX files.
+- Job-description extraction supports the document types accepted by the backend extractor; the current endpoint also enforces a small upload limit.
+- Resumes are stored in MinIO, generally in a bucket associated with the job.
+- Resume downloads are streamed through protected backend endpoints.
+- Job deletion may remove the job's associated storage and should be treated as a destructive operation.
+
+## Validation
+
+Run frontend checks from each portal directory:
+
+```powershell
+npm run build
+npm run lint
+```
+
+Run the backend MCP client test from `backend` when its required services and environment variables are available:
+
+```powershell
+python test_mcp_client.py
+```
+
+Verify the backend is responding before testing either portal:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+```
+
+## Troubleshooting
+
+### Database or MinIO connection errors
+
+Confirm Docker services are running:
+
+```powershell
+docker compose ps
+```
+
+Check that the values in `backend/.env` match the credentials in `docker-compose.yml`.
+
+### Port already in use
+
+Start the portals with explicit ports:
+
+```powershell
+npm run dev -- --port 5173
+npm run dev -- --port 5174
+```
+
+### Google login does not work
+
+Confirm that:
+
+- `GOOGLE_CLIENT_ID` is configured in `backend/.env`.
+- `VITE_GOOGLE_CLIENT_ID` is configured in `candidate-portal/.env`.
+- The current portal URL is listed as an allowed origin in the Google OAuth configuration.
+
+### AI assistant or analysis errors
+
+Check the required provider key in `backend/.env`, especially `GOOGLE_API_KEY` and `GEMINI_API_KEY`, then inspect the backend terminal for the provider error. Confirm that the configured model is available to the selected provider.
+
+### Stale ATS results
+
+Use the recruiter portal's force re-analysis option or call:
+
+```text
+POST /analyze/{bucket_name}?force=true
+```
+
+## Security Notes
+
+- Never commit `.env` files, API keys, passwords, or JWT secrets.
+- Replace all development credentials before deployment.
+- Use a long, random `JWT_SECRET_KEY` in every non-local environment.
+- Store MinIO with secure transport and restricted credentials outside local development.
+- Configure backend authorization independently of frontend route restrictions.
+- Rotate any credential that may have been exposed in a local file, terminal, log, or repository history.
+- Review upload size, file-type, and malware-scanning requirements before production use.
+
+## Project Structure
 
 ```text
 ATS/
 ├── backend/
 │   ├── app/
-│   │   ├── routers/
-│   │   │   ├── analyze.py        # LangGraph AI scoring endpoint + cache management
-│   │   │   ├── applications.py   # Candidate application submission (email-deduplicating)
-│   │   │   ├── auth.py           # JWT, Team Lead, Candidate & Google OAuth endpoints
-│   │   │   ├── buckets.py        # MinIO bucket listing
-│   │   │   ├── candidates.py     # Candidate database CRUD + .xlsx export
-│   │   │   ├── documents.py      # Text extraction from PDF/DOCX (for JD upload)
-│   │   │   ├── jobs.py           # Public, Recruiter & HR Approval job endpoints
-│   │   │   ├── resumes.py        # MinIO resume retrieval & downloads
-│   │   │   └── storage.py        # MinIO file management (default bucket)
-│   │   ├── services/
-│   │   │   ├── auth.py           # Password hashing & JWT token generation
-│   │   │   ├── database.py       # PostgreSQL connection pool & schema init
-│   │   │   └── storage.py        # MinIO SDK client operations
-│   │   ├── dependencies.py       # Auth dependencies (get_current_user)
-│   │   └── main.py               # FastAPI entry point & CORS configuration
-│   ├── workflow/                 # LangGraph AI evaluation nodes, prompts & graph
-│   ├── .env.example
-│   └── requirements.txt
-│
+│   │   ├── mcp/                 # MCP server and client integration
+│   │   ├── routers/             # FastAPI route modules
+│   │   └── services/            # Database, storage, and authentication services
+│   ├── workflow/                # LangGraph state, nodes, prompts, and models
+│   ├── requirements.txt
+│   └── .env.example
 ├── candidate-portal/
-│   ├── src/
-│   │   ├── components/           # Header, GoogleAuthButton, LoginModal, RegisterModal, form steps
-│   │   ├── pages/                # JobListings, JobDetail, ApplicationForm, LoginPage, EditProfile
-│   │   ├── services/             # API services for auth & job applications
-│   │   └── lib/                  # JWT token storage helpers (localStorage ats:token)
-│   ├── .env.example
+│   ├── src/components/          # Candidate UI and form steps
+│   ├── src/pages/               # Listings, details, application, login, profile
+│   ├── src/services/            # Candidate API client
 │   └── package.json
-│
 ├── recruiter-portal/
-│   ├── src/
-│   │   ├── components/           # Navbar, Button, Card, Select, CircularProgress, LoadingOverlay
-│   │   ├── pages/                # Home (ATS Analyzer), Recruiter, Approval, Candidates, CandidateDetails, Results
-│   │   └── services/             # API services for jobs, buckets, resumes, candidates & analysis
+│   ├── src/components/          # Shared recruiter UI and assistant
+│   ├── src/pages/               # Dashboard, jobs, approvals, candidates, results
+│   ├── src/services/            # Recruiter API client
 │   └── package.json
-│
 ├── docker-compose.yml
 └── README.md
 ```
 
----
+## License
 
-## Prerequisites
-
-Before starting, ensure you have installed:
-
-- **Git**
-- **Python 3.11+**
-- **Node.js (v18+)** & `npm`
-- **Docker Desktop** (for PostgreSQL and MinIO)
-
----
-
-## Environment Setup
-
-### 1. Backend Environment (`backend/.env`)
-
-Create `backend/.env`:
-
-```env
-# Database Configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=ats_db
-POSTGRES_USER=ats
-POSTGRES_PASSWORD=ats_password
-
-# MinIO Object Storage
-MINIO_ENDPOINT=localhost:9000
-MINIO_ACCESS_KEY=admin
-MINIO_SECRET_KEY=admin12345
-MINIO_SECURE=false
-MINIO_BUCKET=resumes
-
-# Security & JWT
-JWT_SECRET_KEY=your_random_super_secret_jwt_key_here
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD_HASH=$2b$12$j0t0VP6Q58AtwCj47PJGVerSuVZyKMBg.4WZaohCgV78H.2ayG0Ye
-
-# AI Provider API Keys
-GROQ_API_KEY=gsk_your_groq_api_key_here
-GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
-```
-
-### 2. Candidate Portal Environment (`candidate-portal/.env`)
-
-Create `candidate-portal/.env`:
-
-```env
-VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
-```
-
----
-
-## Installation & Quickstart
-
-### Step 1: Start PostgreSQL and MinIO Containers
-
-```bash
-docker-compose up -d
-```
-
-Verify containers are running:
-- **MinIO Console**: `http://localhost:9001` (Credentials: `admin` / `admin12345`)
-- **PostgreSQL**: `localhost:5432`
-
----
-
-### Step 2: Set Up Backend
-
-```bash
-cd backend
-
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment
-# Windows (PowerShell):
-.\.venv\Scripts\Activate.ps1
-# Linux/macOS:
-source .venv/bin/activate
-
-# Install dependencies (includes openpyxl for .xlsx export)
-pip install -r requirements.txt
-
-# Start FastAPI dev server
-python -m uvicorn app.main:app --reload --port 8000
-```
-
-FastAPI server endpoints:
-- **API Server**: `http://localhost:8000`
-- **Swagger Documentation**: `http://localhost:8000/docs`
-
----
-
-### Step 3: Set Up Recruiter Portal
-
-In a new terminal:
-
-```bash
-cd recruiter-portal
-npm install
-npm run dev
-```
-
-Recruiter Portal will open at `http://localhost:5173`.
-
----
-
-### Step 4: Set Up Candidate Portal
-
-In a new terminal:
-
-```bash
-cd candidate-portal
-npm install
-npm run dev
-```
-
-Candidate Portal will open at `http://localhost:5174`.
-
----
-
-## API Documentation Overview
-
-### 🔐 Auth Endpoints (`/auth`)
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/auth/login` | HR Admin or Team Lead login |
-| `POST` | `/auth/candidate/register` | Candidate email/password registration |
-| `POST` | `/auth/candidate/login` | Candidate email/password login |
-| `POST` | `/auth/google` | Candidate Google OAuth 2.0 sign-in |
-| `GET` | `/auth/me` | Fetch current authenticated user profile |
-| `GET` | `/auth/team-leads` | List all team leads (for recruiter dropdown) |
-
-### 💼 Jobs Endpoints (`/jobs`)
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/jobs/` | List all approved jobs (public) |
-| `GET` | `/jobs/pending` | List unapproved jobs (HR queue) |
-| `GET` | `/jobs/all` | List all jobs (recruiter portal) |
-| `GET` | `/jobs/{job_id}` | Fetch single approved job details |
-| `POST` | `/jobs/` | Create new job posting (pending approval) |
-| `PATCH` | `/jobs/{job_id}/approve` | HR approve job & provision MinIO bucket |
-| `PUT` | `/jobs/{job_id}` | Update job posting details |
-| `DELETE` | `/jobs/{job_id}` | Delete job & purge MinIO bucket |
-
-### 📄 Applications, Resumes & Analysis
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/applications/{job_id}` | Submit candidate application & upload resume |
-| `GET` | `/resumes/{bucket}` | List resumes enriched with candidate info & ATS scores |
-| `GET` | `/resumes/{bucket}/download/{key}` | Stream resume file download |
-| `POST` | `/analyze/{bucket}?force=false` | Run LangGraph AI analysis (uses cache unless `force=true`) |
-| `DELETE` | `/analyze/cache/{bucket}` | Clear cached ATS results for a job bucket |
-| `POST` | `/documents/extract-text` | Extract plain text from a PDF or DOCX file |
-
-### 👥 Candidates Endpoints (`/candidates`)
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/candidates/` | List all candidates with enriched application & ATS data |
-| `PUT` | `/candidates/{id}` | Update a candidate's personal information |
-| `DELETE` | `/candidates/{id}` | Delete a candidate and all their associated data |
-| `GET` | `/candidates/export` | Download all candidate data as a formatted `.xlsx` workbook |
-
-### 🗂️ Storage & Buckets
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/buckets/` | List all MinIO buckets |
-| `GET` | `/storage/list` | List files in default bucket |
-| `GET` | `/storage/download/{key}` | Download file from default bucket |
-| `DELETE` | `/storage/{key}` | Delete file from default bucket |
-
----
-
-## Role-Based Access Control
-
-| Role | Accessible Routes | Key Responsibilities |
-| :--- | :--- | :--- |
-| `hr_admin` | `/approval`, `/recruiter`, `/candidates` | Review pending jobs, approve postings (creates MinIO bucket), manage candidate database |
-| `team_lead` | `/`, `/recruiter`, `/results`, `/candidate/:id`, `/candidates` | Create job postings, upload/filter resumes, run AI ATS analysis, export candidate data |
-| `candidate` | Candidate Portal | Browse jobs, submit multi-step applications, manage profile |
-
----
-
-## Default Credentials
-
-### HR Admin
-| Field | Value |
-| :--- | :--- |
-| **Username** | `admin` |
-| **Password** | `admin` |
-
-### Team Leads (seeded automatically on first startup)
-| Name | Username | Password |
-| :--- | :--- | :--- |
-| Sarah Jenkins | `sarah` | `password123` |
-| Alex Morgan | `alex` | `password123` |
-| David Chen | `david` | `password123` |
-| Emily Taylor | `emily` | `password123` |
-
----
-
-## License & Copyright
-
-**Copyright (c) UWorx Services 2026. All Rights Reserved. The information contained herein is proprietary and confidential. This proprietary and confidential information, either in whole or in part, shall not be used for any purpose unless permitted by the terms of a valid license agreement.**
-
-All source code, design systems, and documentation contained in this repository are proprietary to **Uworx UK**. Unauthorized copying, modification, distribution, or public display of this software is strictly prohibited.
+This is proprietary software owned by Uworx UK. Unauthorized copying, modification, or public display of this software is prohibited. Use and distribution are permitted only under an applicable written license agreement.
